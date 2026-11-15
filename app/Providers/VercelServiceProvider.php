@@ -20,6 +20,8 @@ class VercelServiceProvider extends ServiceProvider
             return;
         }
 
+        \Illuminate\Support\Facades\URL::forceScheme('https');
+
         // Redirect writable paths to /tmp
         $this->app->useStoragePath('/tmp/storage');
     }
@@ -29,6 +31,8 @@ class VercelServiceProvider extends ServiceProvider
         if (!isset($_ENV['VERCEL']) && !getenv('VERCEL')) {
             return;
         }
+
+        \Illuminate\Support\Facades\URL::forceScheme('https');
 
         // Ensure view compiled path exists
         $viewPath = '/tmp/storage/framework/views';
