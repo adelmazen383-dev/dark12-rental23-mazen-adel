@@ -9,6 +9,22 @@
   },
   "routes": [
     {
+      "src": "/sw.js",
+      "dest": "/public/sw.js",
+      "headers": {
+        "cache-control": "public, max-age=0, must-revalidate",
+        "service-worker-allowed": "/"
+      }
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "/public/manifest.json"
+    },
+    {
+      "src": "/client-entry-qr.png",
+      "dest": "/public/client-entry-qr.png"
+    },
+    {
       "src": "/build/(.*)",
       "dest": "/public/build/$1"
     },

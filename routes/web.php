@@ -39,6 +39,21 @@ use App\Http\Controllers\Investor\ProfileController;
 Route::get('/', [ClientApartmentController::class, 'index'])->name('client.apartments.index');
 Route::get('/about', function () { return view('client.about'); })->name('client.about');
 Route::get('/services', function () { return view('client.services'); })->name('client.services');
+Route::get('/sw.js', function () {
+    $path = public_path('sw.js');
+    $content = file_exists($path) ? file_get_contents($path) : '// Service Worker';
+    return response($content, 200, [
+        'Content-Type' => 'application/javascript',
+        'Service-Worker-Allowed' => '/',
+    ]);
+});
+Route::get('/manifest.json', function () {
+    $path = public_path('manifest.json');
+    $content = file_exists($path) ? file_get_contents($path) : '{}';
+    return response($content, 200, [
+        'Content-Type' => 'application/manifest+json',
+    ]);
+});
 Route::get('/apartments/{apartment}', [ClientApartmentController::class, 'show'])->name('client.apartments.show');
 
 // Booking routes
