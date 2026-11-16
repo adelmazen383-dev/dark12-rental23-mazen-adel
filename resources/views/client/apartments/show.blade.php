@@ -5,11 +5,23 @@
 @section('content')
 <div class="space-y-6">
 
-    <!-- Back button -->
-    <div>
-        <a href="{{ route('client.apartments.index') }}" class="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-amber-600 transition">
-            <i class="fa-solid fa-arrow-right"></i>
-            <span>العودة لجميع الشقق</span>
+    <!-- Back button & Quick WhatsApp Row -->
+    <div class="flex items-center justify-between flex-wrap gap-3 pb-2">
+        <a href="{{ route('client.apartments.index') }}" class="inline-flex items-center gap-2 text-xs font-black text-slate-700 hover:text-amber-600 bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs transition">
+            <i class="fa-solid fa-arrow-right text-amber-500"></i>
+            <span>العودة لقائمة الشقق المتاحة</span>
+        </a>
+
+        @php
+            $receptionWa = \App\Models\Setting::getValue('admin_whatsapp', '0500000000');
+            $cleanWa = preg_replace('/[^0-9]/', '', $receptionWa);
+            if (str_starts_with($cleanWa, '05')) { $cleanWa = '966' . substr($cleanWa, 1); }
+            $quickMsg = "مرحباً منصة دارك، أرغب في الاستفسار المباشر عن الشقة رقم ({$apartment->apartment_number}) الدور ({$apartment->floor_number}) بسعر ({$apartment->daily_price} ريال/ليلة).";
+        @endphp
+        <a href="https://wa.me/{{ $cleanWa }}?text={{ urlencode($quickMsg) }}" target="_blank"
+           class="inline-flex items-center gap-2 text-xs font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-3.5 py-2 rounded-xl shadow-2xs transition">
+            <i class="fa-brands fa-whatsapp text-emerald-600 text-sm"></i>
+            <span>استفسار واتساب مباشر عن هذه الشقة</span>
         </a>
     </div>
 

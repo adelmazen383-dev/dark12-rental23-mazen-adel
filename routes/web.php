@@ -37,6 +37,8 @@ use App\Http\Controllers\Investor\ProfileController;
 |--------------------------------------------------------------------------
 */
 Route::get('/', [ClientApartmentController::class, 'index'])->name('client.apartments.index');
+Route::get('/about', function () { return view('client.about'); })->name('client.about');
+Route::get('/services', function () { return view('client.services'); })->name('client.services');
 Route::get('/apartments/{apartment}', [ClientApartmentController::class, 'show'])->name('client.apartments.show');
 
 // Booking routes
