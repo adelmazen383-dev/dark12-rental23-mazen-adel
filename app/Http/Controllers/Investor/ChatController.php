@@ -174,7 +174,7 @@ class ChatController extends Controller
             'message' => 'required|string|max:2000',
         ]);
 
-        $guardResult = ChatAntiBypassGuard::inspect($validated['message']);
+        $guardResult = ChatSecurityService::inspectAndGuard($conversation, $validated['message'], 'investor');
 
         // Save original text on first edit
         if (!$message->original_message) {

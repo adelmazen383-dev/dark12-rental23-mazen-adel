@@ -219,7 +219,7 @@ class ChatController extends Controller
             'message' => 'required|string|max:2000',
         ]);
 
-        $guardResult = ChatAntiBypassGuard::inspect($validated['message']);
+        $guardResult = ChatSecurityService::inspectAndGuard($conversation, $validated['message'], 'customer');
 
         // Preserve original text on first edit
         if (!$message->original_message) {
@@ -272,7 +272,6 @@ class ChatController extends Controller
             'success' => true,
             'message' => 'تم حذف الرسالة بنجاح',
         ]);
-    }
     }
 
     /**
