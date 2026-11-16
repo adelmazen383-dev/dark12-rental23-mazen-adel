@@ -1354,21 +1354,21 @@
                     </div>
                 </div>
 
-                {{-- Feature 6: WhatsApp --}}
+                {{-- Feature 6: Platform Chat --}}
                 <div class="feature-card animate-on-scroll delay-600">
                     <div class="feature-card-inner flex flex-col justify-between">
                         <div>
                             <div class="flex items-center justify-between mb-3">
-                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                                     تواصل مباشر
                                 </span>
-                                <div class="feature-icon-box teal !mb-0 !w-11 !h-11">
-                                    <i class="fab fa-whatsapp text-base"></i>
+                                <div class="feature-icon-box amber !mb-0 !w-11 !h-11">
+                                    <i class="fas fa-comments text-base"></i>
                                 </div>
                             </div>
-                            <h3 class="feature-card-title">سهولة التواصل والحجز عبر الواتساب</h3>
+                            <h3 class="feature-card-title">سهولة التواصل والمحادثة المباشرة</h3>
                             <p class="feature-card-desc">
-                                إمكانية الاستفسار عن الشقق المتاحة والأسعار والاطلاع على الصور وتأكيد الحجز فوراً.
+                                إمكانية الاستفسار عن الشقق والأسعار ومحادثة المالك مباشرة عبر المنصة مع تنبيهات وإشعارات فورية.
                             </p>
                         </div>
                         <div class="pt-4 mt-4 border-t border-white/10 flex items-center gap-1.5 text-xs font-bold text-emerald-400">
@@ -1441,11 +1441,11 @@
                     <div class="timeline-content glass-card p-5">
                         <div class="timeline-step-number">03</div>
                         <h4 class="timeline-step-title">
-                            <i class="fas fa-comment-dots text-emerald-400 ml-2"></i>
-                            تواصل معنا
+                            <i class="fas fa-comments text-amber-400 ml-2"></i>
+                            محادثة المالك مباشرة
                         </h4>
                         <p class="timeline-step-desc">
-                            تواصل مع فريقنا مباشرة عبر الواتساب أو من خلال المنصة للاستفسار عن أي تفاصيل إضافية أو لترتيب زيارة للوحدة.
+                            تواصل مباشرة مع المالك عبر منصة المحادثات الفورية للاستفسار عن أي تفاصيل وتأكيد رغبتك بالحجز واستلام الإشعارات.
                         </p>
                     </div>
                 </div>

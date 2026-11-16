@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Investor;
 
 use App\Http\Controllers\Controller;
-use App\Models\{Apartment, ApartmentMedia};
+use App\Models\{Apartment, ApartmentBlockedDate, ApartmentMedia};
 use App\Services\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -94,7 +94,7 @@ class ApartmentController extends Controller
             abort(403);
         }
 
-        $apartment->load(['media', 'bookings' => fn($q) => $q->latest()->take(10)]);
+        $apartment->load(['media', 'blockedDates' => fn($q) => $q->orderBy('start_date', 'desc'), 'bookings' => fn($q) => $q->latest()->take(10)]);
         return view('investor.apartments.show', compact('apartment'));
     }
 
@@ -185,5 +185,58 @@ class ApartmentController extends Controller
         $media->delete();
 
         return back()->with('success', 'تم حذف الملف بنجاح.');
+    }
+
+    /**
+     * Store a blocked date period for this apartment
+     */
+    public function storeBlockedDate(Request $request, Apartment $apartment)
+    {
+        $investor = auth()->user()->investor;
+        if ($apartment->investor_id !== $investor->id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'reason' => 'required|string|max:100',
+            'notes' => 'nullable|string|max:500',
+        ], [
+            'start_date.required' => 'تاريخ البداية مطلوب',
+            'end_date.required' => 'تاريخ النهاية مطلوب',
+            'end_date.after_or_equal' => 'تاريخ النهاية يجب أن يكون مساوياً أو بعد تاريخ البداية',
+            'reason.required' => 'يرجى تحديد سبب الإغلاق',
+        ]);
+
+        $validated['apartment_id'] = $apartment->id;
+        $validated['investor_id'] = $investor->id;
+
+        $blocked = ApartmentBlockedDate::create($validated);
+
+        AuditService::log('investor_blocked_apartment_dates', $apartment, null, [
+            'start_date' => $blocked->start_date->toDateString(),
+            'end_date' => $blocked->end_date->toDateString(),
+            'reason' => $blocked->reason,
+        ]);
+
+        return back()->with('success', 'تم إغلاق وتحديد فترة عدم التوفر بنجاح، ولن يتم قبول أي حجوزات في هذه الفترة.');
+    }
+
+    /**
+     * Remove a blocked date period (re-open dates)
+     */
+    public function deleteBlockedDate(Apartment $apartment, ApartmentBlockedDate $blockedDate)
+    {
+        $investor = auth()->user()->investor;
+        if ($apartment->investor_id !== $investor->id || $blockedDate->apartment_id !== $apartment->id) {
+            abort(403);
+        }
+
+        $blockedDate->delete();
+
+        AuditService::log('investor_unblocked_apartment_dates', $apartment);
+
+        return back()->with('success', 'تم فتح التواريخ وإتاحتها للحجز من جديد.');
     }
 }

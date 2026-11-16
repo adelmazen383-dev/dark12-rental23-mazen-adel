@@ -73,6 +73,10 @@
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </a>
                         </div>
+                        <a href="{{ route('investor.apartments.show', $apt->id) }}" class="w-full py-1.5 mt-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl text-xs transition border border-rose-200 text-center flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-calendar-xmark text-xs"></i>
+                            <span>تحديد التواريخ المحجوزة / المغلقة</span>
+                        </a>
                     </div>
                 </div>
             @endforeach

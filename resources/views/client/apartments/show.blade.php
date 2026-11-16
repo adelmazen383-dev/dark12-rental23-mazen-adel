@@ -12,16 +12,10 @@
             <span>العودة لقائمة الشقق المتاحة</span>
         </a>
 
-        @php
-            $receptionWa = \App\Models\Setting::getValue('admin_whatsapp', '0500000000');
-            $cleanWa = preg_replace('/[^0-9]/', '', $receptionWa);
-            if (str_starts_with($cleanWa, '05')) { $cleanWa = '966' . substr($cleanWa, 1); }
-            $quickMsg = "مرحباً منصة دارك، أرغب في الاستفسار المباشر عن الشقة رقم ({$apartment->apartment_number}) الدور ({$apartment->floor_number}) بسعر ({$apartment->daily_price} ريال/ليلة).";
-        @endphp
-        <a href="https://wa.me/{{ $cleanWa }}?text={{ urlencode($quickMsg) }}" target="_blank"
-           class="inline-flex items-center gap-2 text-xs font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-3.5 py-2 rounded-xl shadow-2xs transition">
-            <i class="fa-brands fa-whatsapp text-emerald-600 text-sm"></i>
-            <span>استفسار واتساب مباشر عن هذه الشقة</span>
+        <a href="#card-chat"
+           class="inline-flex items-center gap-2 text-xs font-black text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 px-3.5 py-2 rounded-xl shadow-2xs transition">
+            <i class="fa-solid fa-comments text-amber-600 text-sm"></i>
+            <span>محادثة مباشرة مع المالك (شات فوري)</span>
         </a>
     </div>
 

@@ -57,11 +57,12 @@ class ChatController extends Controller
 
             $conversation->update(['last_message_at' => now()]);
 
-            // Notify Investor via WhatsApp
-            if ($apartment->investor && $apartment->investor->whatsapp) {
+            // Notify investor via phone/WhatsApp
+            $apartment = $conversation->apartment;
+            if ($apartment && $apartment->investor && $apartment->investor->whatsapp) {
                 NotificationService::sendWhatsApp(
                     $apartment->investor->whatsapp,
-                    "💬 استفسار ومحادثة جديدة من نزيل حول شقتك {$apartment->apartment_number}:\nالاسم: {$conversation->customer_name}\nالهاتف: {$conversation->customer_phone}\nالرسالة: {$guardResult['cleaned_message']}\nيمكنك الرد وتقديم عرض حجز رسمي له من لوحة المستثمر.",
+                    "💬 استفسار ومحادثة جديدة من النزيل ({$conversation->customer_name}) حول شقة {$apartment->apartment_number}:\n\"{$guardResult['cleaned_message']}\"\nرابط الرد الفوري من بوابتك:\n" . route('investor.chats.show', $conversation->id),
                     'investor',
                     'chat',
                     $conversation->id
@@ -113,6 +114,18 @@ class ChatController extends Controller
         ]);
 
         $conversation->update(['last_message_at' => now()]);
+
+        // Notify investor via phone/WhatsApp
+        $apartment = $conversation->apartment;
+        if ($apartment && $apartment->investor && $apartment->investor->whatsapp) {
+            NotificationService::sendWhatsApp(
+                $apartment->investor->whatsapp,
+                "💬 رسالة جديدة من النزيل ({$conversation->customer_name}) حول شقة {$apartment->apartment_number}:\n\"{$guardResult['cleaned_message']}\"\nرابط الرد الفوري في بوابتك:\n" . route('investor.chats.show', $conversation->id),
+                'investor',
+                'chat',
+                $conversation->id
+            );
+        }
 
         if ($request->wantsJson()) {
             return response()->json([

@@ -114,14 +114,6 @@
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col selection:bg-amber-500 selection:text-white">
 
-    @php
-        $receptionWa = \App\Models\Setting::getValue('admin_whatsapp', '0500000000');
-        $cleanWa = preg_replace('/[^0-9]/', '', $receptionWa);
-        if (str_starts_with($cleanWa, '05')) {
-            $cleanWa = '966' . substr($cleanWa, 1);
-        }
-    @endphp
-
     <!-- Top Announcement Bar (Discreet, high-trust) -->
     <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 text-white text-[11px] py-1.5 px-4 font-bold border-b border-amber-500/20">
         <div class="max-w-6xl mx-auto flex items-center justify-between">
@@ -133,11 +125,10 @@
                 <span class="hidden sm:inline text-slate-300">نظام موحد لتنظيم وحماية وتوثيق إيجار الوحدات السكنية</span>
             </div>
             <div class="flex items-center gap-4">
-                <a href="https://wa.me/{{ $cleanWa }}?text={{ urlencode('مرحباً منصة دارك، أحتاج مساعدة أو استفسار.') }}" target="_blank" class="text-amber-400 hover:text-amber-300 transition flex items-center gap-1">
-                    <i class="fa-brands fa-whatsapp text-xs"></i>
-                    <span class="hidden xs:inline">استقبال البرج:</span>
-                    <span dir="ltr">{{ $receptionWa }}</span>
-                </a>
+                <span class="text-amber-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-bolt text-xs"></i>
+                    <span>محادثات مباشرة وإشعارات فورية مع المُلّاك</span>
+                </span>
             </div>
         </div>
     </div>
@@ -179,17 +170,6 @@
                    class="transition-colors hover:text-amber-600 py-2 flex items-center gap-1.5 {{ request()->routeIs('client.about') ? 'nav-item-active font-extrabold' : '' }}">
                     <i class="fa-solid fa-shield-halved text-amber-500 text-sm"></i>
                     <span>من نحن</span>
-                </a>
-
-                <a href="https://wa.me/{{ $cleanWa }}?text={{ urlencode('مرحباً منصة دارك، أرغب في الاستفسار عن الشقق المتاحة.') }}" 
-                   target="_blank" 
-                   class="text-emerald-700 hover:text-emerald-800 transition py-2 flex items-center gap-1.5 bg-emerald-50 px-3 rounded-full border border-emerald-200">
-                    <span class="relative flex h-2 w-2">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    <i class="fa-brands fa-whatsapp text-emerald-600 text-sm"></i>
-                    <span>استقبال البرج (24/7)</span>
                 </a>
             </nav>
 
@@ -269,12 +249,6 @@
                        class="flex items-center gap-3 p-3 rounded-2xl font-bold text-xs {{ request()->routeIs('client.about') ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'text-slate-700 hover:bg-slate-50' }}">
                         <i class="fa-solid fa-shield-halved text-amber-500 text-sm w-5"></i>
                         <span>من نحن وتوجيهات الأمان</span>
-                    </a>
-
-                    <a href="https://wa.me/{{ $cleanWa }}?text={{ urlencode('مرحباً منصة دارك، أرغب في الاستفسار السريع.') }}" target="_blank"
-                       class="flex items-center gap-3 p-3 rounded-2xl font-bold text-xs bg-emerald-50 text-emerald-800 border border-emerald-200">
-                        <i class="fa-brands fa-whatsapp text-emerald-600 text-base w-5"></i>
-                        <span>استقبال البرج (24/7)</span>
                     </a>
                 </div>
 
@@ -368,13 +342,13 @@
                     </ul>
                 </div>
 
-                <!-- Col 3: Support & Contact -->
+                <!-- Col 3: Support & System info -->
                 <div class="space-y-2.5">
-                    <h4 class="font-bold text-white text-sm mb-3">خدمة العملاء والاستقبال</h4>
-                    <p class="text-[11px] text-slate-400">مكتب الاستقبال الميداني متوفر 24 ساعة لاستقبال النزلاء وتسليم المفاتيح.</p>
-                    <a href="https://wa.me/{{ $cleanWa }}" target="_blank" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600 hover:text-white transition font-bold text-xs mt-1">
-                        <i class="fa-brands fa-whatsapp text-sm"></i>
-                        <span>تواصل مباشر: {{ $receptionWa }}</span>
+                    <h4 class="font-bold text-white text-sm mb-3">حجز رقمي وتواصل مباشر</h4>
+                    <p class="text-[11px] text-slate-400">تواصل مباشر ومحادثات آمنة داخل المنصة مع ملّاك الوحدات، مع إشعارات فورية وتوثيق رقمي لكافة تفاصيل الحجز.</p>
+                    <a href="{{ route('client.apartments.index') }}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500 hover:text-slate-950 transition font-bold text-xs mt-1">
+                        <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                        <span>تصفح الشقق المتاحة</span>
                     </a>
                 </div>
             </div>
@@ -385,7 +359,7 @@
                 <div class="flex items-center gap-4">
                     <span>حماية أمنية وتوثيق رقمي</span>
                     <span>•</span>
-                    <span class="text-emerald-400 font-semibold">استقبال البرج متاح 24/7</span>
+                    <span class="text-amber-400 font-semibold">حجز إلكتروني وإشعارات فورية</span>
                 </div>
             </div>
         </div>
@@ -412,11 +386,10 @@
                 <span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
             </a>
 
-            <!-- Center Action Button: Reception WhatsApp Float -->
-            <a href="https://wa.me/{{ $cleanWa }}?text={{ urlencode('مرحباً منصة دارك، أرغب في الاستفسار السريع أو حجز وحدة.') }}" 
-               target="_blank"
-               class="-mt-6 flex flex-col items-center justify-center w-13 h-13 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 text-white shadow-lg shadow-emerald-500/40 p-3 hover:scale-110 active:scale-95 transition pulse-green-ring">
-                <i class="fa-brands fa-whatsapp text-2xl"></i>
+            <!-- Center Action Button: Quick Book & Browse Float -->
+            <a href="{{ route('client.apartments.index') }}" 
+               class="-mt-6 flex flex-col items-center justify-center w-12 h-12 rounded-full bg-gradient-to-tr from-amber-400 to-amber-500 text-slate-950 shadow-lg shadow-amber-500/40 p-2.5 hover:scale-110 active:scale-95 transition">
+                <i class="fa-solid fa-magnifying-glass text-lg"></i>
             </a>
 
             <!-- Tab 3: About Us -->
@@ -443,14 +416,6 @@
 
         </div>
     </div>
-
-    <!-- Floating Global WhatsApp Bubble for Desktop -->
-    <a href="https://wa.me/{{ $cleanWa }}?text={{ urlencode('مرحباً منصة دارك، أرغب في الاستفسار عن الشقق والخدمات.') }}" 
-       target="_blank" 
-       class="hidden md:flex fixed bottom-6 left-6 z-40 items-center gap-2.5 px-4 py-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-2xl shadow-emerald-600/40 hover:scale-105 transition duration-300 pulse-green-ring group">
-        <i class="fa-brands fa-whatsapp text-xl"></i>
-        <span>استقبال البرج متواجد الآن</span>
-    </a>
 
     <script>
         function toggleMobileDrawer() {

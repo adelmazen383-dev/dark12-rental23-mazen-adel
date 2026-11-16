@@ -168,6 +168,11 @@ Route::prefix('investor')->name('investor.')->middleware(['auth', 'investor'])->
     Route::resource('apartments', InvestorApartmentController::class);
     Route::post('apartments/{apartment}/upload-media', [InvestorApartmentController::class, 'uploadMedia'])->name('apartments.upload-media');
     Route::delete('apartments/{apartment}/media/{media}', [InvestorApartmentController::class, 'deleteMedia'])->name('apartments.delete-media');
+    Route::post('apartments/{apartment}/blocked-dates', [InvestorApartmentController::class, 'storeBlockedDate'])->name('apartments.blocked-dates.store');
+    Route::delete('apartments/{apartment}/blocked-dates/{blockedDate}', [InvestorApartmentController::class, 'deleteBlockedDate'])->name('apartments.blocked-dates.destroy');
+
+    // Phone / Live Notifications Polling Endpoint
+    Route::get('api/unread-alerts', [InvestorDashboardController::class, 'unreadAlerts'])->name('api.unread-alerts');
 
     // Bookings
     Route::get('bookings', [InvestorBookingController::class, 'index'])->name('bookings.index');

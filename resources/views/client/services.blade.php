@@ -309,16 +309,10 @@
                             <i class="fa-solid fa-arrow-down text-xs"></i>
                         </a>
 
-                        @php
-                            $adminWa = \App\Models\Setting::getValue('admin_whatsapp', '0500000000');
-                            $cleanAdminWa = preg_replace('/[^0-9]/', '', $adminWa);
-                            if (str_starts_with($cleanAdminWa, '05')) { $cleanAdminWa = '966' . substr($cleanAdminWa, 1); }
-                        @endphp
-                        <a href="https://wa.me/{{ $cleanAdminWa }}?text={{ urlencode('مرحباً منصة دارك، أرغب في الاستفسار والطلب المباشر لإحدى خدماتكم العقارية.') }}" 
-                           target="_blank"
-                           class="px-5 py-3.5 rounded-2xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs sm:text-sm border border-white/15 transition flex items-center gap-2 shadow-sm">
-                            <i class="fa-brands fa-whatsapp text-emerald-400 text-base"></i>
-                            <span>استشارة عقارية مجانية عبر الواتساب</span>
+                        <a href="{{ route('investor.register') }}" 
+                           class="px-5 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm transition flex items-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-handshake text-slate-950 text-base"></i>
+                            <span>انضم كمستثمر ووفر وحدتك معنا</span>
                         </a>
                     </div>
                 </div>
@@ -857,10 +851,10 @@
                             * هذا التقدير تقريبي ويشمل التجهيزات الفندقية، الصيانة والخدمات الميدانية. يمكنك حجز استشارة دقيقة الآن.
                         </p>
 
-                        <button onclick="requestQuoteWithCalc()" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
-                            <i class="fa-brands fa-whatsapp text-sm"></i>
-                            <span>تأكيد الحساب ومناقشة التفاصيل عبر الواتساب</span>
-                        </button>
+                        <a href="{{ route('investor.register') }}" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-handshake text-sm"></i>
+                            <span>تسجيل عقارك والبدء في الاستثمار فوراً</span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -1084,10 +1078,10 @@
                         <span>تصفح الشقق المتاحة للحجز الآن</span>
                     </a>
 
-                    <a href="https://wa.me/{{ $cleanAdminWa }}?text={{ urlencode('مرحباً منصة دارك، أريد التحدث مع خدمة العملاء لطلب إحدى الخدمات المتاحة.') }}" target="_blank"
-                       class="px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm transition shadow-lg shadow-emerald-600/30 flex items-center gap-2">
-                        <i class="fa-brands fa-whatsapp text-lg"></i>
-                        <span>تواصل فوري عبر الواتساب</span>
+                    <a href="{{ route('investor.register') }}"
+                       class="px-6 py-3.5 rounded-2xl bg-white/10 hover:bg-white/15 text-white font-black text-xs sm:text-sm border border-white/20 transition shadow-lg flex items-center gap-2">
+                        <i class="fa-solid fa-user-plus text-amber-400 text-lg"></i>
+                        <span>انضم كمستثمر عقاري</span>
                     </a>
                 </div>
             </div>
@@ -1134,9 +1128,9 @@
 
         <!-- Action Buttons -->
         <div class="flex items-center gap-3">
-            <button onclick="sendOrderToWhatsApp()" class="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30">
-                <i class="fa-brands fa-whatsapp text-base"></i>
-                <span>إرسال الطلب فوراً عبر الواتساب</span>
+            <button onclick="submitServiceRequest()" class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30">
+                <i class="fa-solid fa-check text-base"></i>
+                <span>تأكيد إرسال الطلب</span>
             </button>
             <button onclick="closeServiceModal()" class="py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-slate-300 font-bold text-xs transition">
                 إلغاء
@@ -1293,15 +1287,7 @@
     }
 
     function requestQuoteWithCalc() {
-        const rooms = document.getElementById('rooms-label').innerText;
-        const duration = document.getElementById('duration-label').innerText;
-        const total = document.getElementById('calculated-total').innerText;
-        const typeName = currentCalcType === 'daily' ? 'حجز إقامة سكنية' : 'إدارة واستثمار عقار';
-
-        const text = `مرحباً منصة دارك، قمت باستخدام حاسبة الخدمات لـ (${typeName}) بالبيانات التالية:\n- التجهيز: ${rooms}\n- المدة: ${duration}\n- التقدير: ${total} ريال\nأرغب في مناقشة تفاصيل الحجز وتأكيده معكم.`;
-        
-        const cleanPhone = '{{ $cleanAdminWa }}';
-        window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+        window.location.href = "{{ route('investor.register') }}";
     }
 
     // -------------------------------------------------------------
@@ -1338,15 +1324,14 @@
         }, 300);
     }
 
-    function sendOrderToWhatsApp() {
+    function submitServiceRequest() {
         const name = document.getElementById('custName').value.trim() || 'عميل دارك';
-        const phone = document.getElementById('custPhone').value.trim() || 'غير محدد';
-        const notes = document.getElementById('custNotes').value.trim() || 'لا توجد ملاحظات إضافية';
-
-        const msg = `مرحباً منصة دَارِك لتنظيم الإيجار 🌟\nأرغب في الاستفسار والطلب لخدمة:\n📌 *${selectedServiceName}*\n\nبيانات العميل:\n- الاسم: ${name}\n- الهاتف: ${phone}\n- تفاصيل الطلب: ${notes}\n\nيرجى التواصل معي لتأكيد الخدمة، شكراً لكم.`;
-
-        const cleanPhone = '{{ $cleanAdminWa }}';
-        window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+        const phone = document.getElementById('custPhone').value.trim();
+        if (!phone) {
+            alert('يرجى إدخال رقم الهاتف للتواصل معك.');
+            return;
+        }
+        alert(`شكراً لك أ/ ${name}!\nتم استلام طلبك لخدمة "${selectedServiceName}" بنجاح، وسيتم التواصل معك مباشرة.`);
         closeServiceModal();
     }
 

@@ -155,33 +155,26 @@
                 </div>
             </div>
 
-            <!-- Live Status & Contact Reception -->
+            <!-- Live Status & Platform Protection -->
             <div class="flex-shrink-0 w-full md:w-auto">
-                @php
-                    $receptionWa = \App\Models\Setting::getValue('admin_whatsapp', '0500000000');
-                    $cleanWa = preg_replace('/[^0-9]/', '', $receptionWa);
-                    if (str_starts_with($cleanWa, '05')) { $cleanWa = '966' . substr($cleanWa, 1); }
-                @endphp
-                <div class="bg-slate-900/90 backdrop-blur-md border border-white/10 p-4 rounded-2xl shadow-lg space-y-2.5 text-center sm:text-right">
+                <div class="bg-slate-900/90 backdrop-blur-md border border-white/10 p-4 rounded-2xl shadow-lg space-y-3 text-center sm:text-right">
                     <div class="flex items-center justify-between gap-3 text-xs">
                         <span class="flex items-center gap-2 font-bold text-emerald-400">
                             <span class="relative flex h-2.5 w-2.5">
                                 <span class="radar-ping"></span>
                                 <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                             </span>
-                            <span>استقبال البرج متصل الآن</span>
+                            <span>المنصة متصلة وجاهزة</span>
                         </span>
                         <span class="font-mono font-bold text-amber-400 text-xs bg-amber-400/10 px-2 py-0.5 rounded-md">
                             {{ $apartments->total() ?? $apartments->count() }} شقة متاحة
                         </span>
                     </div>
 
-                    <a href="https://wa.me/{{ $cleanWa }}?text={{ urlencode('مرحباً منصة دارك، أرغب في الاستفسار السريع عن الشقق المتوفرة اليوم.') }}" 
-                       target="_blank"
-                       class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition flex items-center justify-center gap-2 shadow-md shadow-emerald-600/30">
-                        <i class="fa-brands fa-whatsapp text-sm"></i>
-                        <span>محادثة فورية مع الاستقبال</span>
-                    </a>
+                    <div class="p-2 rounded-xl bg-white/5 border border-white/5 text-[11px] text-slate-300">
+                        <i class="fa-solid fa-shield-check text-emerald-400 ml-1"></i>
+                        <span>حجز وتوثيق ومحادثات آمنة 100% داخل الموقع</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -252,20 +245,10 @@
             @endif
         </div>
 
-        <form action="{{ route('client.apartments.index') }}" method="GET" class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div>
-                <label class="block font-bold text-slate-600 mb-1">الدور السكني:</label>
-                <select name="floor" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:bg-white focus:outline-none transition">
-                    <option value="">جميع الأدوار</option>
-                    @foreach($floors as $floor)
-                        <option value="{{ $floor }}" {{ request('floor') == $floor ? 'selected' : '' }}>الدور {{ $floor }}</option>
-                    @endforeach
-                </select>
-            </div>
-
+        <form action="{{ route('client.apartments.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div>
                 <label class="block font-bold text-slate-600 mb-1">رقم الشقة:</label>
-                <input type="text" name="apartment_number" value="{{ request('apartment_number') }}" placeholder="مثال: 101، 204..."
+                <input type="text" name="apartment_number" value="{{ request('apartment_number') }}" placeholder="ابحث برقم الشقة (مثال: 101)..."
                     class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:bg-white focus:outline-none transition">
             </div>
 
@@ -279,7 +262,7 @@
                 </select>
             </div>
 
-            <div class="flex items-end gap-2 col-span-2 sm:col-span-1">
+            <div class="flex items-end gap-2">
                 <button type="submit" class="w-full py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl transition flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 active:scale-95">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <span>بحث وتصفية</span>
@@ -299,16 +282,12 @@
             <div class="space-y-1">
                 <h3 class="text-base sm:text-lg font-black text-slate-900">لا توجد شقق متاحة حالياً وفق هذه المعايير</h3>
                 <p class="text-xs text-slate-500 max-w-sm mx-auto">
-                    يرجى تعديل معايير البحث أو تواصل مع الاستقبال الميداني لتوفير أنسب شقة لك.
+                    يرجى تعديل معايير البحث لتصفح جميع الشقق والخيارات المتاحة في البرج.
                 </p>
             </div>
             <div class="flex items-center justify-center gap-3 pt-2">
                 <a href="{{ route('client.apartments.index') }}" class="text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 px-4 py-2 rounded-xl transition">
                     عرض جميع الشقق
-                </a>
-                <a href="https://wa.me/{{ $cleanWa }}?text={{ urlencode('مرحباً، أبحث عن شقة بمواصفات معينة ولم أجدها بالقائمة.') }}" target="_blank" class="text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 px-4 py-2 rounded-xl transition flex items-center gap-1.5">
-                    <i class="fa-brands fa-whatsapp"></i>
-                    <span>طلب شقة من الاستقبال</span>
                 </a>
             </div>
         </div>
@@ -435,15 +414,11 @@
                                 <span>تفاصيل وحجز</span>
                             </a>
 
-                            <!-- Instant WhatsApp Booking -->
-                            @php
-                                $unitMsg = "مرحباً منصة دارك، أرغب في الاستفسار عن الشقة رقم ({$apt->apartment_number}) بالدور ({$apt->floor_number}) بسعر ({$apt->daily_price} ريال/ليلة). هل هي متاحة اليوم؟";
-                            @endphp
-                            <a href="https://wa.me/{{ $cleanWa }}?text={{ urlencode($unitMsg) }}" 
-                               target="_blank"
-                               class="wa-btn-pulse py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
-                                <i class="fa-brands fa-whatsapp text-sm"></i>
-                                <span>حجز واتساب</span>
+                            <!-- Direct Platform Chat with Landlord (Instant Alert) -->
+                            <a href="{{ route('client.apartments.show', $apt->id) }}#card-chat" 
+                               class="py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
+                                <i class="fa-solid fa-comments text-sm text-slate-950"></i>
+                                <span>محادثة المالك</span>
                             </a>
                         </div>
                     </div>

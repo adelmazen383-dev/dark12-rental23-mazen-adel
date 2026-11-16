@@ -36,9 +36,10 @@ class Apartment extends Model
     public function inspectionRequests() { return $this->hasMany(InspectionRequest::class); }
     public function conversations() { return $this->hasMany(Conversation::class); }
     public function rentalContracts() { return $this->hasMany(RentalContract::class); }
+    public function blockedDates() { return $this->hasMany(ApartmentBlockedDate::class); }
 
     /**
-     * Check if apartment is currently rented out (occupied today)
+     * Check if apartment is currently rented out (occupied today) or blocked
      */
     public function isCurrentlyRented(): bool
     {
@@ -54,8 +55,18 @@ class Apartment extends Model
             return true;
         }
 
-        return $this->rentalContracts()
+        $hasActiveContract = $this->rentalContracts()
             ->where('status', 'active')
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->exists();
+
+        if ($hasActiveContract) {
+            return true;
+        }
+
+        // Check if investor blocked this unit today
+        return $this->blockedDates()
             ->whereDate('start_date', '<=', $today)
             ->whereDate('end_date', '>=', $today)
             ->exists();
@@ -101,8 +112,19 @@ class Apartment extends Model
             return true;
         }
 
-        return $this->rentalContracts()
+        $hasContract = $this->rentalContracts()
             ->where('status', 'active')
+            ->where(function ($q) use ($checkin, $checkout) {
+                $q->whereDate('start_date', '<', $checkout)
+                  ->whereDate('end_date', '>', $checkin);
+            })->exists();
+
+        if ($hasContract) {
+            return true;
+        }
+
+        // Check if investor blocked the apartment for these dates
+        return $this->blockedDates()
             ->where(function ($q) use ($checkin, $checkout) {
                 $q->whereDate('start_date', '<', $checkout)
                   ->whereDate('end_date', '>', $checkin);
@@ -112,7 +134,7 @@ class Apartment extends Model
     /**
      * Scope to only query apartments visible to clients according to all platform business rules:
      * - Must be active and available
-     * - Must NOT be currently rented (confirmed booking or active contract)
+     * - Must NOT be currently rented (confirmed booking, active contract, or investor blocked date)
      * - Investor must be approved and have active subscription, UNLESS Admin approved an override
      */
     public function scopeVisibleToClients($query)
@@ -130,6 +152,10 @@ class Apartment extends Model
                 $c->where('status', 'active')
                   ->whereDate('start_date', '<=', $today)
                   ->whereDate('end_date', '>=', $today);
+            })
+            ->whereDoesntHave('blockedDates', function ($bd) use ($today) {
+                $bd->whereDate('start_date', '<=', $today)
+                   ->whereDate('end_date', '>=', $today);
             })
             ->where(function ($q) use ($today) {
                 $q->where('admin_approved_override', true)

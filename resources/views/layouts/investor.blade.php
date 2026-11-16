@@ -137,25 +137,53 @@
 
     <!-- Main Content -->
     <div class="flex-1 flex flex-col min-w-0">
-        <!-- Top bar for Mobile -->
-        <header class="h-16 bg-white border-b border-gray-200 px-4 flex md:hidden items-center justify-between sticky top-0 z-30">
-            <div class="flex items-center gap-2">
-                <button type="button" onclick="document.getElementById('mobileInvestorSidebar').classList.toggle('hidden')" class="p-2 rounded-xl bg-slate-900 text-white flex items-center justify-center">
+        <!-- Top bar for Mobile & Desktop -->
+        <header class="h-16 bg-white border-b border-gray-200 px-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="document.getElementById('mobileInvestorSidebar').classList.toggle('hidden')" class="md:hidden p-2 rounded-xl bg-slate-900 text-white flex items-center justify-center">
                     <i class="fa-solid fa-bars text-sm"></i>
                 </button>
                 <div class="w-8 h-8 rounded-lg overflow-hidden border border-emerald-400 flex items-center justify-center">
                     <img src="{{ asset('images/dark-logo.jpg') }}" alt="دارك" class="w-full h-full object-cover">
                 </div>
-                <span class="font-bold text-xs text-slate-900">بوابة المستثمر</span>
+                <div>
+                    <span class="font-bold text-xs sm:text-sm text-slate-900 block leading-tight">بوابة المستثمر</span>
+                    <span class="text-[10px] text-slate-400 hidden sm:inline">منظومة إدارة وتأجير العقارات</span>
+                </div>
             </div>
-            <div class="flex items-center gap-2">
-                <a href="{{ route('investor.wallet.index') }}" class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200">
-                    {{ number_format($wallet?->balance ?? 0, 0) }} ر.س
+
+            <!-- Instant Phone Notifications Button & Actions -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Push Notification Enable / Status Button -->
+                <button id="btnEnableNotifications" onclick="enablePhoneNotifications()" type="button" 
+                        class="text-xs font-bold px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-300 hover:border-emerald-300 transition flex items-center gap-2 shadow-2xs">
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span id="notifPingDot" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span id="notifStaticDot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                    </span>
+                    <i class="fa-solid fa-bell text-xs"></i>
+                    <span id="notifStatusText" class="hidden xs:inline">تفعيل إشعارات الجوال</span>
+                </button>
+
+                <!-- Live Unread Chat Pill -->
+                <a href="{{ route('investor.chats.index') }}" class="relative p-2 text-slate-600 hover:text-emerald-600 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 transition" title="المحادثات">
+                    <i class="fa-solid fa-comments text-base"></i>
+                    <span id="navUnreadChatBadge" class="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-500 text-white {{ $unreadChats > 0 ? '' : 'hidden' }}">
+                        {{ $unreadChats }}
+                    </span>
                 </a>
-                <form action="{{ route('logout') }}" method="POST">
+
+                <!-- Wallet Balance -->
+                <a href="{{ route('investor.wallet.index') }}" class="text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-xl border border-emerald-200 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-wallet text-emerald-600"></i>
+                    <span class="font-mono font-black">{{ number_format($wallet?->balance ?? 0, 0) }}</span>
+                    <span class="text-[10px] hidden sm:inline">ر.س</span>
+                </a>
+
+                <form action="{{ route('logout') }}" method="POST" class="inline">
                     @csrf
-                    <button type="submit" class="p-2 text-rose-600 hover:text-rose-700">
-                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <button type="submit" title="تسجيل الخروج" class="p-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition">
+                        <i class="fa-solid fa-arrow-right-from-bracket text-base"></i>
                     </button>
                 </form>
             </div>
@@ -244,6 +272,266 @@
             @yield('content')
         </main>
     </div>
+
+    <!-- Floating Live Phone Notification Toast -->
+    <div id="liveAlertToast" class="fixed top-5 left-5 right-5 sm:left-auto sm:right-5 sm:w-96 z-50 transform -translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-slate-900/95 backdrop-blur-xl border-2 border-emerald-500/80 rounded-2xl p-4 shadow-2xl text-white pointer-events-auto flex items-start gap-3.5">
+            <div id="toastIconBox" class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg flex-shrink-0 border border-emerald-500/40">
+                <i class="fa-solid fa-bell"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2 mb-1">
+                    <h5 id="toastTitle" class="font-black text-xs text-emerald-300 truncate">تنبيه فوري جديد</h5>
+                    <span id="toastTime" class="text-[10px] text-slate-400">الآن</span>
+                </div>
+                <p id="toastMessage" class="text-xs text-slate-200 line-clamp-2 leading-relaxed mb-2.5">
+                    محتوى التنبيه هنا...
+                </p>
+                <div class="flex items-center gap-2">
+                    <a id="toastActionBtn" href="#" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition flex items-center gap-1.5 shadow-sm">
+                        <span>عرض والرد الآن</span>
+                        <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                    </a>
+                    <button onclick="dismissToastAlert()" type="button" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 text-xs font-bold transition">
+                        إغلاق
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phone Notifications & Live Alert Polling Script -->
+    <script>
+        // Track last seen items to prevent repeating alerts
+        let lastSeenMessageId = null;
+        let lastSeenBookingId = null;
+        let isPolling = false;
+
+        // Initialize state on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            checkNotificationPermissionStatus();
+            // Start polling every 6 seconds
+            setInterval(pollUnreadAlerts, 6000);
+            // Run immediate check
+            setTimeout(pollUnreadAlerts, 1500);
+        });
+
+        function checkNotificationPermissionStatus() {
+            const btn = document.getElementById('btnEnableNotifications');
+            const statusText = document.getElementById('notifStatusText');
+            const pingDot = document.getElementById('notifPingDot');
+            const staticDot = document.getElementById('notifStaticDot');
+
+            if (!('Notification' in window)) {
+                if (btn) btn.style.display = 'none';
+                return;
+            }
+
+            if (Notification.permission === 'granted') {
+                if (statusText) statusText.innerText = 'إشعارات الهاتف مفعلة';
+                if (pingDot) { pingDot.className = 'hidden'; }
+                if (staticDot) { staticDot.className = 'relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500'; }
+                if (btn) {
+                    btn.classList.remove('bg-slate-100', 'text-slate-700', 'border-slate-300');
+                    btn.classList.add('bg-emerald-50', 'text-emerald-700', 'border-emerald-300');
+                }
+            } else if (Notification.permission === 'denied') {
+                if (statusText) statusText.innerText = 'الإشعارات محظورة بالمتصفح';
+                if (pingDot) { pingDot.className = 'hidden'; }
+                if (staticDot) { staticDot.className = 'relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500'; }
+            } else {
+                if (statusText) statusText.innerText = 'تفعيل إشعارات الجوال';
+            }
+        }
+
+        async function enablePhoneNotifications() {
+            if (!('Notification' in window)) {
+                alert('عذراً، هذا المتصفح لا يدعم إشعارات النظام.');
+                return;
+            }
+
+            try {
+                const permission = await Notification.requestPermission();
+                checkNotificationPermissionStatus();
+
+                if (permission === 'granted') {
+                    playNotificationChime();
+                    vibratePhone();
+
+                    // Send test notification to verify
+                    new Notification('✅ تم تفعيل إشعارات منصة دارك على هاتفك', {
+                        body: 'ستصلك الآن تنبيهات صوتية واهتزاز فور وصول أي رسالة من نزيل أو تأكيد حجز لشققك.',
+                        icon: '/images/dark-logo.jpg',
+                        badge: '/images/dark-logo.jpg',
+                    });
+
+                    showToastAlert('تم تفعيل إشعارات الهاتف!', 'ستصلك تنبيهات فورية عند وصول أي رسالة أو حجز جديد.', '#', 'success');
+                }
+            } catch (err) {
+                console.error('Error requesting notification permission:', err);
+            }
+        }
+
+        // Web Audio API Synthesized High-Priority Bell Sound (No external audio file needed)
+        function playNotificationChime() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const ctx = new AudioContext();
+
+                // Two-tone bell chime
+                const now = ctx.currentTime;
+                
+                // Tone 1
+                const osc1 = ctx.createOscillator();
+                const gain1 = ctx.createGain();
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(587.33, now); // D5
+                gain1.gain.setValueAtTime(0.3, now);
+                gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                osc1.connect(gain1);
+                gain1.connect(ctx.destination);
+                osc1.start(now);
+                osc1.stop(now + 0.5);
+
+                // Tone 2 (higher note)
+                const osc2 = ctx.createOscillator();
+                const gain2 = ctx.createGain();
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(880, now + 0.15); // A5
+                gain2.gain.setValueAtTime(0.35, now + 0.15);
+                gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+                osc2.connect(gain2);
+                gain2.connect(ctx.destination);
+                osc2.start(now + 0.15);
+                osc2.stop(now + 0.75);
+            } catch (e) {
+                // Audio context may be restricted before user gesture
+            }
+        }
+
+        function vibratePhone() {
+            if ('vibrate' in navigator) {
+                navigator.vibrate([200, 100, 200, 100, 300]);
+            }
+        }
+
+        // Poll backend for unread messages and bookings
+        async function pollUnreadAlerts() {
+            if (isPolling) return;
+            isPolling = true;
+
+            try {
+                const res = await fetch("{{ route('investor.api.unread-alerts') }}", {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!res.ok) throw new Error('Network error');
+                const data = await res.json();
+
+                // Update unread badge in top navbar
+                const badge = document.getElementById('navUnreadChatBadge');
+                if (badge) {
+                    if (data.unread_messages_count > 0) {
+                        badge.innerText = data.unread_messages_count;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+
+                // Check for new customer message
+                if (data.latest_message && data.latest_message.id !== lastSeenMessageId) {
+                    if (lastSeenMessageId !== null) {
+                        // Truly a new message that arrived!
+                        triggerPhoneAlert(
+                            `📩 رسالة من النزيل (${data.latest_message.sender_name})`,
+                            `شقة ${data.latest_message.apartment_number}: "${data.latest_message.snippet}"`,
+                            data.latest_message.url,
+                            'message'
+                        );
+                    }
+                    lastSeenMessageId = data.latest_message.id;
+                }
+
+                // Check for new booking
+                if (data.latest_booking && data.latest_booking.id !== lastSeenBookingId) {
+                    if (lastSeenBookingId !== null) {
+                        triggerPhoneAlert(
+                            `🎉 حجز جديد برقم #${data.latest_booking.reference}`,
+                            `النزيل: ${data.latest_booking.customer_name} | المبلغ: ${data.latest_booking.total_amount} ريال | شقة ${data.latest_booking.apartment_number}`,
+                            data.latest_booking.url,
+                            'booking'
+                        );
+                    }
+                    lastSeenBookingId = data.latest_booking.id;
+                }
+
+            } catch (err) {
+                // Ignore transient network errors
+            } finally {
+                isPolling = false;
+            }
+        }
+
+        function triggerPhoneAlert(title, message, url, type) {
+            playNotificationChime();
+            vibratePhone();
+
+            // Native Phone / System Notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const notif = new Notification(title, {
+                    body: message,
+                    icon: '/images/dark-logo.jpg',
+                    badge: '/images/dark-logo.jpg',
+                    vibrate: [200, 100, 200],
+                    data: { url: url }
+                });
+                notif.onclick = function () {
+                    window.focus();
+                    if (url && url !== '#') window.location.href = url;
+                };
+            }
+
+            // In-App Toast
+            showToastAlert(title, message, url, type);
+        }
+
+        function showToastAlert(title, message, url, type) {
+            const toast = document.getElementById('liveAlertToast');
+            const titleElem = document.getElementById('toastTitle');
+            const msgElem = document.getElementById('toastMessage');
+            const actionBtn = document.getElementById('toastActionBtn');
+            const iconBox = document.getElementById('toastIconBox');
+
+            if (!toast) return;
+
+            titleElem.innerText = title;
+            msgElem.innerText = message;
+            actionBtn.href = url;
+
+            if (type === 'booking') {
+                iconBox.innerHTML = '<i class="fa-solid fa-calendar-check text-amber-400"></i>';
+                iconBox.className = 'w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg flex-shrink-0 border border-amber-500/40';
+            } else {
+                iconBox.innerHTML = '<i class="fa-solid fa-comments text-emerald-400"></i>';
+                iconBox.className = 'w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg flex-shrink-0 border border-emerald-500/40';
+            }
+
+            toast.classList.remove('-translate-y-24', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            // Auto dismiss after 9 seconds
+            setTimeout(dismissToastAlert, 9000);
+        }
+
+        function dismissToastAlert() {
+            const toast = document.getElementById('liveAlertToast');
+            if (toast) {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('-translate-y-24', 'opacity-0');
+            }
+        }
+    </script>
 
     @yield('scripts')
 </body>

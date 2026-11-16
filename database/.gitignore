@@ -1,1 +1,5 @@
-*.sqlite*
+# Ignore temporary sqlite files except main database
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+
