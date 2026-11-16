@@ -40,69 +40,17 @@
     @php
         $dealStatus = $conversation->deal_status;
         $statusMap = [
-            'negotiating'    => ['bg-slate-100 text-slate-700',   'fa-comments-dollar', 'قيد التفاوض'],
-            'offer_sent'     => ['bg-amber-100 text-amber-800',   'fa-file-invoice',    'وصلك عرض رسمي من المالك — راجعه أدناه'],
+            'negotiating'    => ['bg-slate-100 text-slate-700',   'fa-comments',        'محادثة جارية ومباشرة'],
             'confirmed'      => ['bg-emerald-100 text-emerald-800','fa-circle-check',   'تم تأكيد حجزك بنجاح ✅'],
             'cancelled'      => ['bg-rose-100 text-rose-800',     'fa-xmark-circle',    'تم إلغاء الصفقة'],
-            'caught_offline' => ['bg-red-100 text-red-900',       'fa-triangle-exclamation','⚠️ تم رصد محاولة تحايل — راجع الإدارة'],
+            'caught_offline' => ['bg-red-100 text-red-900',       'fa-triangle-exclamation','⚠️ تنبيه نظام'],
         ];
-        [$badgeClass, $badgeIcon, $badgeLabel] = $statusMap[$dealStatus] ?? ['bg-slate-100 text-slate-600','fa-circle','غير معروف'];
+        [$badgeClass, $badgeIcon, $badgeLabel] = $statusMap[$dealStatus] ?? ['bg-slate-100 text-slate-600','fa-circle','محادثة نشطة'];
     @endphp
     <div class="flex items-center gap-2 px-4 py-2 rounded-xl {{ $badgeClass }} text-xs font-bold border border-slate-200/80 shadow-sm flex-shrink-0">
         <i class="fa-solid {{ $badgeIcon }}"></i>
         <span>حالة المحادثة: {{ $badgeLabel }}</span>
     </div>
-
-    {{-- ===== OFFER ACCEPTANCE CARD ===== --}}
-    @if($dealStatus === 'offer_sent' && $conversation->offer_price && $conversation->offer_checkin_date && $conversation->offer_checkout_date)
-    @php
-        $nights = \Carbon\Carbon::parse($conversation->offer_checkin_date)
-                    ->diffInDays(\Carbon\Carbon::parse($conversation->offer_checkout_date));
-    @endphp
-    <div class="bg-amber-50 border-2 border-amber-400 rounded-2xl shadow-md p-5 flex-shrink-0">
-        <div class="flex items-center gap-2 mb-3">
-            <i class="fa-solid fa-file-invoice-dollar text-amber-600 text-xl"></i>
-            <p class="font-black text-sm text-amber-900">📋 عرض حجز رسمي من المالك</p>
-        </div>
-        <div class="grid grid-cols-2 gap-3 text-xs mb-4">
-            <div class="bg-white rounded-xl p-3 border border-amber-200">
-                <span class="text-slate-500 block mb-0.5">السعر الإجمالي</span>
-                <strong class="text-amber-700 text-base font-black">{{ number_format($conversation->offer_price, 2) }} ر.س</strong>
-            </div>
-            <div class="bg-white rounded-xl p-3 border border-amber-200">
-                <span class="text-slate-500 block mb-0.5">مدة الإقامة</span>
-                <strong class="text-slate-800 font-bold">{{ $nights }} ليلة</strong>
-            </div>
-            <div class="bg-white rounded-xl p-3 border border-amber-200">
-                <span class="text-slate-500 block mb-0.5">تاريخ الدخول</span>
-                <strong class="text-slate-800 font-bold">{{ $conversation->offer_checkin_date }}</strong>
-            </div>
-            <div class="bg-white rounded-xl p-3 border border-amber-200">
-                <span class="text-slate-500 block mb-0.5">تاريخ الخروج</span>
-                <strong class="text-slate-800 font-bold">{{ $conversation->offer_checkout_date }}</strong>
-            </div>
-            @if($conversation->offer_notes)
-            <div class="col-span-2 bg-white rounded-xl p-3 border border-amber-200">
-                <span class="text-slate-500 block mb-0.5">ملاحظات المالك</span>
-                <strong class="text-slate-700">{{ $conversation->offer_notes }}</strong>
-            </div>
-            @endif
-        </div>
-        <form action="{{ route('client.chat.accept-offer', $conversation->customer_token) }}" method="POST">
-            @csrf
-            <button type="submit"
-                    onclick="return confirm('هل أنت متأكد من قبول هذا العرض؟ سيتم تأكيد الحجز فورًا.')"
-                    class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl transition flex items-center justify-center gap-2 shadow-md text-sm">
-                <i class="fa-solid fa-circle-check"></i>
-                قبول العرض وتأكيد الحجز الآن
-            </button>
-        </form>
-        <p class="text-[10px] text-slate-500 text-center mt-2">
-            <i class="fa-solid fa-shield-halved ml-1"></i>
-            الحجز مضمون ومحمي من قِبَل إدارة البرج. ستصلك شيفرة الاستقبال فور التأكيد.
-        </p>
-    </div>
-    @endif
 
     {{-- ===== CONFIRMED BOOKING INFO ===== --}}
     @if($dealStatus === 'confirmed' && $conversation->booking)
@@ -112,7 +60,7 @@
             <p class="font-black text-sm text-emerald-900">🎉 تم تأكيد حجزك بنجاح!</p>
             <p class="mt-1 text-emerald-800">رقم الحجز: <strong>#{{ $conversation->booking->reference_number }}</strong></p>
             <div class="mt-2 bg-white rounded-xl p-3 border border-emerald-200 inline-block">
-                <span class="text-slate-500 text-[10px] block mb-0.5">شيفرة الاستقبال (أبرزها عند الوصول)</span>
+                <span class="text-slate-500 text-[10px] block mb-0.5">كود استلام المفتاح من الاستقبال</span>
                 <strong class="font-mono text-2xl tracking-widest text-emerald-700">{{ $conversation->booking->reception_code }}</strong>
             </div>
             <p class="mt-1 text-slate-500">الدخول: {{ $conversation->booking->checkin_date }} | الخروج: {{ $conversation->booking->checkout_date }}</p>
@@ -120,38 +68,17 @@
     </div>
     @endif
 
-    {{-- ===== SURVEY WIDGET (client) ===== --}}
-    @if(in_array($dealStatus, ['confirmed', 'negotiating']) && !$conversation->client_survey_response)
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex-shrink-0">
-        <p class="text-xs font-bold text-slate-700 mb-3">
-            <i class="fa-solid fa-clipboard-question text-amber-500 ml-1"></i>
-            هل اتفقت مع المالك خارج المنصة؟ إجابتك سرية وتحمي حقوقك.
-        </p>
-        <form action="{{ route('client.chat.survey', $conversation->customer_token) }}" method="POST" class="flex gap-3">
-            @csrf
-            <button type="submit" name="response" value="deal_done"
-                    class="flex-1 py-2 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold rounded-xl text-xs transition border border-amber-300">
-                ✅ نعم، تم الحجز عبر المنصة
-            </button>
-            <button type="submit" name="response" value="no_deal"
-                    class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition border border-slate-300">
-                ❌ لم يحدث أي شيء
-            </button>
-        </form>
-    </div>
-    @endif
-
     <!-- Chat Messages Window -->
     <div id="messagesWindow" class="flex-1 bg-white rounded-2xl border border-slate-200 p-4 shadow-sm overflow-y-auto space-y-3 flex flex-col">
         <div class="text-center my-2">
             <span class="px-3 py-1 rounded-full text-[10px] bg-slate-100 text-slate-500 font-medium">
-                بداية المحادثة الآمنة بينك وبين مالك الشقة
+                بداية المحادثة الآمنة والمباشرة مع مالك الشقة
             </span>
         </div>
 
         <div id="messagesList" class="space-y-3 flex-1 flex flex-col justify-end">
             @forelse($conversation->messages as $msg)
-                <div class="flex flex-col {{ $msg->sender_type === 'customer' ? 'items-start' : 'items-end' }}">
+                <div class="flex flex-col {{ $msg->sender_type === 'customer' ? 'items-start' : 'items-end' }}" id="msg-box-{{ $msg->id }}">
                     <div class="max-w-[85%] sm:max-w-[75%] rounded-2xl p-3 text-xs shadow-sm
                         @if($msg->sender_type === 'customer')
                             bg-amber-500 text-slate-950 font-medium rounded-br-none
@@ -170,9 +97,26 @@
                                     <i class="fa-solid fa-user ml-1"></i> أنت
                                 @endif
                             </span>
-                            <span>{{ $msg->created_at->format('H:i') }}</span>
+                            <div class="flex items-center gap-1.5">
+                                @if($msg->is_edited && !$msg->is_deleted)
+                                    <span class="text-[9px] opacity-80">(معدّلة)</span>
+                                @endif
+                                <span>{{ $msg->created_at->format('H:i') }}</span>
+                                @if($msg->sender_type === 'customer' && !$msg->is_deleted)
+                                    <button onclick="editMsg({{ $msg->id }}, '{{ addslashes($msg->message) }}')" class="hover:text-amber-800 text-slate-950 ml-1" title="تعديل">
+                                        <i class="fa-solid fa-pencil text-[10px]"></i>
+                                    </button>
+                                    <button onclick="deleteMsg({{ $msg->id }})" class="hover:text-rose-700 text-slate-950" title="حذف">
+                                        <i class="fa-solid fa-trash-can text-[10px]"></i>
+                                    </button>
+                                @endif
+                            </div>
                         </div>
-                        <p class="whitespace-pre-line leading-relaxed">{{ $msg->message }}</p>
+                        @if($msg->is_deleted)
+                            <p class="italic opacity-70 text-[11px]"><i class="fa-solid fa-ban ml-1"></i> تم حذف هذه الرسالة</p>
+                        @else
+                            <p class="whitespace-pre-line leading-relaxed" id="msg-text-{{ $msg->id }}">{{ $msg->message }}</p>
+                        @endif
                     </div>
                 </div>
             @empty
@@ -205,6 +149,13 @@
     const messageInput = document.getElementById('messageInput');
     const sendUrl = @json(route('client.chat.send', $conversation->customer_token));
     const getUrl = @json(route('client.chat.messages', $conversation->customer_token));
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    // Store active chat token locally so customer can easily resume anytime
+    try {
+        localStorage.setItem('dark_last_chat_token', token);
+        localStorage.setItem('dark_last_chat_apt', '{{ $conversation->apartment->apartment_number }}');
+    } catch(e) {}
 
     function scrollToBottom() {
         messagesWindow.scrollTop = messagesWindow.scrollHeight;
@@ -217,46 +168,85 @@
         const text = messageInput.value.trim();
         if (!text) return;
 
-        // Instantly append temporary message
-        const tempDiv = document.createElement('div');
-        tempDiv.className = 'flex flex-col items-start';
-        tempDiv.innerHTML = `
-            <div class="max-w-[85%] sm:max-w-[75%] rounded-2xl p-3 text-xs shadow-sm bg-amber-500 text-slate-950 font-medium rounded-br-none">
-                <div class="flex items-center justify-between gap-3 mb-1 text-[10px] text-slate-900/80 font-bold">
-                    <span><i class="fa-solid fa-user ml-1"></i> أنت</span>
-                    <span>الآن</span>
-                </div>
-                <p class="whitespace-pre-line leading-relaxed">${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
-            </div>
-        `;
-        messagesList.appendChild(tempDiv);
-        scrollToBottom();
         messageInput.value = '';
 
         fetch(sendUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'X-CSRF-TOKEN': csrfToken,
                 'Accept': 'application/json'
             },
             body: JSON.stringify({ message: text })
-        }).then(r => r.json()).catch(err => console.error(err));
+        })
+        .then(r => r.json())
+        .then(() => fetchMessages())
+        .catch(err => console.error(err));
     });
 
-    // Polling every 3.5 seconds
-    setInterval(() => {
+    // Edit message
+    window.editMsg = function(msgId, oldText) {
+        const newText = prompt('تعديل الرسالة:', oldText);
+        if (newText === null || newText.trim() === '' || newText === oldText) return;
+
+        fetch(`/chat/${token}/messages/${msgId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ message: newText.trim() })
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                fetchMessages();
+            } else {
+                alert(res.message || 'تعذر تعديل الرسالة');
+            }
+        })
+        .catch(err => console.error(err));
+    };
+
+    // Delete message
+    window.deleteMsg = function(msgId) {
+        if (!confirm('هل أنت متأكد من حذف هذه الرسالة؟')) return;
+
+        fetch(`/chat/${token}/messages/${msgId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            }
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                fetchMessages();
+            } else {
+                alert(res.message || 'تعذر حذف الرسالة');
+            }
+        })
+        .catch(err => console.error(err));
+    };
+
+    function fetchMessages() {
         fetch(getUrl, {
             headers: { 'Accept': 'application/json' }
         })
         .then(r => r.json())
         .then(data => {
-            if (data.messages && data.messages.length > 0) {
+            if (data.messages) {
                 renderMessages(data.messages);
             }
         })
         .catch(err => console.error(err));
-    }, 3500);
+    }
+
+    // Polling every 3.5 seconds
+    setInterval(fetchMessages, 3500);
 
     function renderMessages(messages) {
         let html = '';
@@ -276,14 +266,37 @@
                             : (isAdmin ? '<i class="fa-solid fa-shield-halved ml-1"></i> إدارة البرج'
                             : `<i class="fa-solid fa-user-tie ml-1"></i> المالك (${m.sender_name})`);
 
+            let actionBtns = '';
+            if (isMe && !m.is_deleted) {
+                const escaped = m.message.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                actionBtns = `
+                    <button onclick="editMsg(${m.id}, '${escaped}')" class="hover:text-amber-800 text-slate-950 ml-1" title="تعديل">
+                        <i class="fa-solid fa-pencil text-[10px]"></i>
+                    </button>
+                    <button onclick="deleteMsg(${m.id})" class="hover:text-rose-700 text-slate-950" title="حذف">
+                        <i class="fa-solid fa-trash-can text-[10px]"></i>
+                    </button>
+                `;
+            }
+
+            let msgBody = m.is_deleted
+                ? `<p class="italic opacity-70 text-[11px]"><i class="fa-solid fa-ban ml-1"></i> تم حذف هذه الرسالة</p>`
+                : `<p class="whitespace-pre-line leading-relaxed">${m.message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
+
+            let editedBadge = (m.is_edited && !m.is_deleted) ? `<span class="text-[9px] opacity-80">(معدّلة)</span>` : '';
+
             html += `
-                <div class="flex flex-col ${alignClass}">
+                <div class="flex flex-col ${alignClass}" id="msg-box-${m.id}">
                     <div class="max-w-[85%] sm:max-w-[75%] rounded-2xl p-3 text-xs shadow-sm ${bubbleClass}">
                         <div class="flex items-center justify-between gap-3 mb-1 text-[10px] ${headerClass}">
                             <span>${senderLabel}</span>
-                            <span>${m.created_at}</span>
+                            <div class="flex items-center gap-1.5">
+                                ${editedBadge}
+                                <span>${m.created_at}</span>
+                                ${actionBtns}
+                            </div>
                         </div>
-                        <p class="whitespace-pre-line leading-relaxed">${m.message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
+                        ${msgBody}
                     </div>
                 </div>
             `;

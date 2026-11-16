@@ -358,18 +358,57 @@
                     playNotificationChime();
                     vibratePhone();
 
+                    // Register Service Worker for background push when site is closed
+                    if ('serviceWorker' in navigator && 'PushManager' in window) {
+                        try {
+                            const reg = await navigator.serviceWorker.register('/sw.js');
+                            const vapidRes = await fetch("{{ route('investor.api.vapid-key') }}");
+                            const vapidData = await vapidRes.json();
+
+                            if (vapidData.publicKey) {
+                                const sub = await reg.pushManager.subscribe({
+                                    userVisibleOnly: true,
+                                    applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey)
+                                });
+
+                                // Send to server
+                                await fetch("{{ route('investor.api.push-subscribe') }}", {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                    },
+                                    body: JSON.stringify(sub)
+                                });
+                            }
+                        } catch (swErr) {
+                            console.warn('Service worker push registration note:', swErr);
+                        }
+                    }
+
                     // Send test notification to verify
                     new Notification('✅ تم تفعيل إشعارات منصة دارك على هاتفك', {
-                        body: 'ستصلك الآن تنبيهات صوتية واهتزاز فور وصول أي رسالة من نزيل أو تأكيد حجز لشققك.',
-                        icon: '/images/dark-logo.jpg',
-                        badge: '/images/dark-logo.jpg',
+                        body: 'ستصلك الآن تنبيهات صوتية واهتزاز فور وصول أي رسالة من نزيل أو تأكيد حجز حتى والموقع مغلق.',
+                        icon: '/client-entry-qr.png',
+                        badge: '/client-entry-qr.png',
                     });
 
-                    showToastAlert('تم تفعيل إشعارات الهاتف!', 'ستصلك تنبيهات فورية عند وصول أي رسالة أو حجز جديد.', '#', 'success');
+                    showToastAlert('تم تفعيل إشعارات الهاتف!', 'ستصلك تنبيهات فورية بالصوت والنص عند وصول أي رسالة أو حجز جديد حتى لو كان الموقع مغلقاً.', '#', 'success');
                 }
             } catch (err) {
                 console.error('Error requesting notification permission:', err);
             }
+        }
+
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
         }
 
         // Web Audio API Synthesized High-Priority Bell Sound (No external audio file needed)

@@ -111,6 +111,12 @@ class ChatController extends Controller
                 'sender_type' => $m->sender_type,
                 'sender_name' => $m->sender_name,
                 'message' => $m->message,
+                'is_edited' => (bool)$m->is_edited,
+                'original_message' => $m->original_message,
+                'edited_at' => $m->edited_at ? $m->edited_at->format('H:i d/m') : null,
+                'is_deleted' => (bool)$m->is_deleted,
+                'deleted_at' => $m->deleted_at ? $m->deleted_at->format('H:i d/m') : null,
+                'deleted_by' => $m->deleted_by,
                 'created_at' => $m->created_at->format('H:i'),
                 'is_me' => $m->sender_type === 'admin',
             ];

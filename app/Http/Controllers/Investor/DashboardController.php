@@ -114,4 +114,59 @@ class DashboardController extends Controller
             'latest_booking' => $latestBooking,
         ]);
     }
+
+    /**
+     * Get VAPID Public Key for client push registration
+     */
+    public function getVapidKey()
+    {
+        return response()->json([
+            'publicKey' => \App\Services\WebPushService::getPublicKey(),
+        ]);
+    }
+
+    /**
+     * Store Web Push subscription from browser
+     */
+    public function subscribePush(Request $request)
+    {
+        $validated = $request->validate([
+            'endpoint' => 'required|string',
+            'keys.p256dh' => 'required|string',
+            'keys.auth' => 'required|string',
+        ]);
+
+        $sub = \App\Services\WebPushService::saveSubscription(
+            auth()->user(),
+            $validated['endpoint'],
+            $validated['keys']['p256dh'],
+            $validated['keys']['auth']
+        );
+
+        return response()->json(['success' => true, 'id' => $sub->id]);
+    }
+
+    /**
+     * Send instant test push notification
+     */
+    public function testPush(Request $request)
+    {
+        $investor = auth()->user()->investor;
+        if (!$investor) {
+            return response()->json(['success' => false, 'message' => 'حساب مستثمر غير متوفر'], 400);
+        }
+
+        $sent = \App\Services\WebPushService::sendToInvestor(
+            $investor,
+            '🔔 تجربة إشعار دارك (الموقع مغلق)',
+            'مبروك! نظام الإشعارات في الخلفية شغال بنجاح وصوت التنبيه فعال حتى والموقع مغلق.',
+            route('investor.chats.index')
+        );
+
+        return response()->json([
+            'success' => true,
+            'sent_count' => $sent,
+            'message' => $sent > 0 ? 'تم إرسال الإشعار الفوري بنجاح إلى هاتفك!' : 'لم يتم العثور على أجهزة مشتركة، يرجى تفعيل الإشعارات أولاً.',
+        ]);
+    }
 }

@@ -171,6 +171,16 @@
                     <i class="fa-solid fa-shield-halved text-amber-500 text-sm"></i>
                     <span>من نحن</span>
                 </a>
+
+                <!-- Resume Active Guest Chat Pill (If guest started a chat) -->
+                <a id="guestResumeChatBtn" href="#" class="hidden px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-900 border border-amber-400/40 text-xs font-bold transition items-center gap-1.5">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                    </span>
+                    <i class="fa-solid fa-comments text-amber-600"></i>
+                    <span id="guestResumeChatText">محادثتي مع المالك</span>
+                </a>
             </nav>
 
             <!-- User Auth Buttons & Mobile Menu Toggle -->
@@ -436,6 +446,19 @@
                 }, 300);
             }
         }
+        // Resume active guest chat if exists in localStorage
+        try {
+            const token = localStorage.getItem('dark_last_chat_token');
+            const apt = localStorage.getItem('dark_last_chat_apt');
+            const btn = document.getElementById('guestResumeChatBtn');
+            const txt = document.getElementById('guestResumeChatText');
+            if (token && btn) {
+                btn.href = '/chat/' + token;
+                if (apt && txt) txt.innerText = 'محادثتي (شقة ' + apt + ')';
+                btn.classList.remove('hidden');
+                btn.classList.add('inline-flex');
+            }
+        } catch(e) {}
     </script>
 
     @yield('scripts')

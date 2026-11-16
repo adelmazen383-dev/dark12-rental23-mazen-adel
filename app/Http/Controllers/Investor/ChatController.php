@@ -88,6 +88,17 @@ class ChatController extends Controller
 
         $conversation->update(['last_message_at' => now()]);
 
+        // Notify customer via phone with direct link to return to their chat!
+        if ($conversation->customer_phone) {
+            \App\Services\NotificationService::sendWhatsApp(
+                $conversation->customer_phone,
+                "💬 رد مالك شقة ({$conversation->apartment->apartment_number}):\n\"{$guardResult['cleaned_message']}\"\nرابط متابعة المحادثة والرد مباشرة:\n" . route('client.chat.show', $conversation->customer_token),
+                'customer',
+                'chat',
+                $conversation->id
+            );
+        }
+
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
@@ -126,7 +137,9 @@ class ChatController extends Controller
                 'id' => $m->id,
                 'sender_type' => $m->sender_type,
                 'sender_name' => $m->sender_name,
-                'message' => $m->message,
+                'message' => $m->is_deleted ? 'تم حذف هذه الرسالة' : $m->message,
+                'is_deleted' => (bool)$m->is_deleted,
+                'is_edited' => (bool)$m->is_edited,
                 'created_at' => $m->created_at->format('H:i'),
                 'is_me' => $m->sender_type === 'investor',
             ];
@@ -135,58 +148,85 @@ class ChatController extends Controller
         return response()->json([
             'status' => $conversation->status,
             'deal_status' => $conversation->deal_status,
-            'offer_price' => $conversation->offer_price,
             'messages' => $messages,
         ]);
     }
 
     /**
-     * Investor makes an official binding offer to the client in chat:
-     * Specifying dates and negotiated price.
+     * Edit investor's own message
      */
-    public function makeOffer(Request $request, Conversation $conversation)
+    public function updateMessage(Request $request, Conversation $conversation, Message $message)
     {
         $investor = auth()->user()->investor;
-        if ($conversation->investor_id !== $investor->id) {
+        if ($conversation->investor_id !== $investor->id || $message->conversation_id !== $conversation->id) {
             abort(403);
         }
 
+        if ($message->sender_type !== 'investor') {
+            return response()->json(['success' => false, 'message' => 'لا يمكنك تعديل رسائل الطرف الآخر'], 403);
+        }
+
+        if ($message->is_deleted) {
+            return response()->json(['success' => false, 'message' => 'لا يمكن تعديل رسالة تم حذفها'], 422);
+        }
+
         $validated = $request->validate([
-            'offer_price' => 'required|numeric|min:1',
-            'offer_checkin_date' => 'required|date|after_or_equal:today',
-            'offer_checkout_date' => 'required|date|after:offer_checkin_date',
-            'offer_notes' => 'nullable|string|max:500',
+            'message' => 'required|string|max:2000',
         ]);
 
-        $conversation->update([
-            'deal_status' => 'offer_sent',
-            'offer_price' => $validated['offer_price'],
-            'offer_checkin_date' => $validated['offer_checkin_date'],
-            'offer_checkout_date' => $validated['offer_checkout_date'],
-            'offer_notes' => $validated['offer_notes'] ?? null,
-            'last_message_at' => now(),
+        $guardResult = ChatAntiBypassGuard::inspect($validated['message']);
+
+        // Save original text on first edit
+        if (!$message->original_message) {
+            $message->original_message = $message->message;
+        }
+
+        $message->message = $guardResult['cleaned_message'];
+        $message->is_edited = true;
+        $message->edited_at = now();
+        $message->save();
+
+        AuditService::log('message_edited_by_investor', $conversation, null, [
+            'message_id' => $message->id,
+            'original' => $message->original_message,
+            'new' => $message->message,
         ]);
 
-        $nights = Carbon::parse($validated['offer_checkin_date'])->diffInDays(Carbon::parse($validated['offer_checkout_date']));
+        return response()->json([
+            'success' => true,
+            'message' => $message->message,
+            'is_edited' => true,
+        ]);
+    }
 
-        // Post system offer notice in the chat
-        $conversation->messages()->create([
-            'sender_type' => 'investor',
-            'sender_id' => auth()->id(),
-            'sender_name' => $investor->full_name,
-            'message' => "🏷️ عرض حجز رسمي مقدم من المالك:\n" .
-                         "• الإقامة: من {$validated['offer_checkin_date']} إلى {$validated['offer_checkout_date']} ({$nights} ليالٍ)\n" .
-                         "• السعر الإجمالي المتفق عليه: {$validated['offer_price']} ريال سعودي\n" .
-                         ($validated['offer_notes'] ? "• ملاحظات: {$validated['offer_notes']}\n" : "") .
-                         "👉 يمكنك قبول هذا العرض بالأسفل لإصدار كود استلام المفتاح من الاستقبال فوراً.",
-            'is_read_by_customer' => false,
-            'is_read_by_investor' => true,
-            'is_read_by_admin' => false,
+    /**
+     * Delete investor's own message (soft delete with admin audit trail)
+     */
+    public function deleteMessage(Request $request, Conversation $conversation, Message $message)
+    {
+        $investor = auth()->user()->investor;
+        if ($conversation->investor_id !== $investor->id || $message->conversation_id !== $conversation->id) {
+            abort(403);
+        }
+
+        if ($message->sender_type !== 'investor') {
+            return response()->json(['success' => false, 'message' => 'لا يمكنك حذف رسائل الطرف الآخر'], 403);
+        }
+
+        $message->is_deleted = true;
+        $message->deleted_at = now();
+        $message->deleted_by = 'investor';
+        $message->save();
+
+        AuditService::log('message_deleted_by_investor', $conversation, null, [
+            'message_id' => $message->id,
+            'deleted_text' => $message->message,
         ]);
 
-        AuditService::log('investor_sent_deal_offer', $conversation, null, $validated);
-
-        return back()->with('success', 'تم إرسال عرض الحجز الرسمي للنزيل في المحادثة بنجاح.');
+        return response()->json([
+            'success' => true,
+            'message' => 'تم حذف الرسالة بنجاح',
+        ]);
     }
 
     /**

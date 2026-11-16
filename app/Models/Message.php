@@ -15,6 +15,12 @@ class Message extends Model
         'sender_id',
         'sender_name',
         'message',
+        'is_edited',
+        'original_message',
+        'edited_at',
+        'is_deleted',
+        'deleted_at',
+        'deleted_by',
         'is_read_by_customer',
         'is_read_by_investor',
         'is_read_by_admin',
@@ -25,6 +31,10 @@ class Message extends Model
         'is_read_by_customer' => 'boolean',
         'is_read_by_investor' => 'boolean',
         'is_read_by_admin' => 'boolean',
+        'is_edited' => 'boolean',
+        'is_deleted' => 'boolean',
+        'edited_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
     public function conversation()

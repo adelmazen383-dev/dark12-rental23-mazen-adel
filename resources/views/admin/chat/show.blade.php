@@ -144,7 +144,7 @@
         <div id="messagesList" class="space-y-3 flex-1 flex flex-col justify-end">
             @forelse($conversation->messages as $msg)
                 <div class="flex flex-col {{ $msg->sender_type === 'admin' ? 'items-center' : ($msg->sender_type === 'investor' ? 'items-start' : 'items-end') }}">
-                    <div class="max-w-[80%] rounded-2xl p-3 text-xs shadow-sm
+                    <div class="max-w-[85%] rounded-2xl p-3 text-xs shadow-sm
                         @if($msg->sender_type === 'admin')
                             bg-indigo-700 text-white font-medium border border-indigo-600 text-center
                         @elseif($msg->sender_type === 'investor')
@@ -162,9 +162,37 @@
                                     <i class="fa-solid fa-user ml-1"></i> النزيل: {{ $msg->sender_name }}
                                 @endif
                             </span>
-                            <span class="font-mono text-slate-400">{{ $msg->created_at->format('Y-m-d H:i') }}</span>
+                            <div class="flex items-center gap-2">
+                                @if($msg->is_deleted)
+                                    <span class="px-1.5 py-0.2 rounded bg-rose-200 text-rose-800 text-[9px] font-black">محذوفة</span>
+                                @elseif($msg->is_edited)
+                                    <span class="px-1.5 py-0.2 rounded bg-amber-200 text-amber-800 text-[9px] font-black">معدّلة</span>
+                                @endif
+                                <span class="font-mono text-slate-400">{{ $msg->created_at->format('Y-m-d H:i') }}</span>
+                            </div>
                         </div>
-                        <p class="whitespace-pre-line leading-relaxed text-slate-800 {{ $msg->sender_type === 'admin' ? 'text-white' : '' }}">{{ $msg->message }}</p>
+
+                        @if($msg->is_deleted)
+                            <div class="p-2 rounded-xl bg-rose-100/70 border border-rose-300 text-rose-900 text-[11px] mb-1">
+                                <span class="font-bold block text-[10px] text-rose-800">
+                                    <i class="fa-solid fa-trash-can ml-1"></i>
+                                    تم حذفها بواسطة ({{ $msg->deleted_by === 'customer' ? 'النزيل' : 'المستثمر' }}) في {{ $msg->deleted_at ? $msg->deleted_at->format('H:i d/m') : '' }}:
+                                </span>
+                                <span class="line-through font-mono text-rose-900 select-all">{{ $msg->message }}</span>
+                            </div>
+                        @else
+                            <p class="whitespace-pre-line leading-relaxed text-slate-800 {{ $msg->sender_type === 'admin' ? 'text-white' : '' }}">{{ $msg->message }}</p>
+
+                            @if($msg->is_edited && $msg->original_message)
+                                <div class="mt-2 p-2 rounded-xl bg-amber-100/70 border border-amber-300 text-amber-900 text-[11px]">
+                                    <span class="font-bold block text-[10px] text-amber-800 mb-0.5">
+                                        <i class="fa-solid fa-pencil ml-1"></i>
+                                        النص الأصلي قبل التعديل (عُدّلت في {{ $msg->edited_at ? $msg->edited_at->format('H:i d/m') : '' }}):
+                                    </span>
+                                    <span class="font-mono text-slate-800 select-all">{{ $msg->original_message }}</span>
+                                </div>
+                            @endif
+                        @endif
                     </div>
                 </div>
             @empty
@@ -269,14 +297,51 @@
                             : (isInvestor ? `<i class="fa-solid fa-user-tie ml-1"></i> المالك: ${m.sender_name}`
                             : `<i class="fa-solid fa-user ml-1"></i> النزيل: ${m.sender_name}`);
 
+            let auditBadges = '';
+            let contentBody = '';
+
+            if (m.is_deleted) {
+                auditBadges = `<span class="px-1.5 py-0.2 rounded bg-rose-200 text-rose-800 text-[9px] font-black">محذوفة</span>`;
+                const deleter = m.deleted_by === 'customer' ? 'النزيل' : 'المستثمر';
+                contentBody = `
+                    <div class="p-2 rounded-xl bg-rose-100/70 border border-rose-300 text-rose-900 text-[11px] mb-1">
+                        <span class="font-bold block text-[10px] text-rose-800">
+                            <i class="fa-solid fa-trash-can ml-1"></i>
+                            تم حذفها بواسطة (${deleter}) في ${m.deleted_at || ''}:
+                        </span>
+                        <span class="line-through font-mono select-all text-rose-900">${m.message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</span>
+                    </div>
+                `;
+            } else {
+                if (m.is_edited) {
+                    auditBadges = `<span class="px-1.5 py-0.2 rounded bg-amber-200 text-amber-800 text-[9px] font-black">معدّلة</span>`;
+                }
+                contentBody = `<p class="whitespace-pre-line leading-relaxed ${isAdmin ? 'text-white' : 'text-slate-800'}">${m.message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
+
+                if (m.is_edited && m.original_message) {
+                    contentBody += `
+                        <div class="mt-2 p-2 rounded-xl bg-amber-100/70 border border-amber-300 text-amber-900 text-[11px]">
+                            <span class="font-bold block text-[10px] text-amber-800 mb-0.5">
+                                <i class="fa-solid fa-pencil ml-1"></i>
+                                النص الأصلي قبل التعديل (عُدّلت في ${m.edited_at || ''}):
+                            </span>
+                            <span class="font-mono text-slate-800 select-all">${m.original_message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</span>
+                        </div>
+                    `;
+                }
+            }
+
             html += `
                 <div class="flex flex-col ${alignClass}">
-                    <div class="max-w-[80%] rounded-2xl p-3 text-xs shadow-sm ${bubbleClass}">
+                    <div class="max-w-[85%] rounded-2xl p-3 text-xs shadow-sm ${bubbleClass}">
                         <div class="flex items-center justify-between gap-4 mb-1 text-[10px] ${headerClass}">
                             <span>${senderLabel}</span>
-                            <span class="font-mono text-slate-400">${m.created_at}</span>
+                            <div class="flex items-center gap-2">
+                                ${auditBadges}
+                                <span class="font-mono text-slate-400">${m.created_at}</span>
+                            </div>
                         </div>
-                        <p class="whitespace-pre-line leading-relaxed ${isAdmin ? 'text-white' : 'text-slate-800'}">${m.message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
+                        ${contentBody}
                     </div>
                 </div>
             `;

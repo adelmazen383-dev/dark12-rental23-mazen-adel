@@ -57,15 +57,25 @@ class ChatController extends Controller
 
             $conversation->update(['last_message_at' => now()]);
 
-            // Notify investor via phone/WhatsApp
+            // Notify investor via phone/WhatsApp & Web Push (works even when site is closed)
             $apartment = $conversation->apartment;
-            if ($apartment && $apartment->investor && $apartment->investor->whatsapp) {
-                NotificationService::sendWhatsApp(
-                    $apartment->investor->whatsapp,
-                    "💬 استفسار ومحادثة جديدة من النزيل ({$conversation->customer_name}) حول شقة {$apartment->apartment_number}:\n\"{$guardResult['cleaned_message']}\"\nرابط الرد الفوري من بوابتك:\n" . route('investor.chats.show', $conversation->id),
-                    'investor',
-                    'chat',
-                    $conversation->id
+            if ($apartment && $apartment->investor) {
+                if ($apartment->investor->whatsapp) {
+                    NotificationService::sendWhatsApp(
+                        $apartment->investor->whatsapp,
+                        "💬 استفسار ومحادثة جديدة من النزيل ({$conversation->customer_name}) حول شقة {$apartment->apartment_number}:\n\"{$guardResult['cleaned_message']}\"\nرابط الرد الفوري من بوابتك:\n" . route('investor.chats.show', $conversation->id),
+                        'investor',
+                        'chat',
+                        $conversation->id
+                    );
+                }
+
+                \App\Services\WebPushService::sendToInvestor(
+                    $apartment->investor,
+                    "💬 رسالة من ({$conversation->customer_name}) - شقة {$apartment->apartment_number}",
+                    $guardResult['cleaned_message'],
+                    route('investor.chats.show', $conversation->id),
+                    'chat-' . $conversation->id
                 );
             }
         }
@@ -115,15 +125,25 @@ class ChatController extends Controller
 
         $conversation->update(['last_message_at' => now()]);
 
-        // Notify investor via phone/WhatsApp
+        // Notify investor via phone/WhatsApp & Web Push (reaches investor even if site/browser is closed)
         $apartment = $conversation->apartment;
-        if ($apartment && $apartment->investor && $apartment->investor->whatsapp) {
-            NotificationService::sendWhatsApp(
-                $apartment->investor->whatsapp,
-                "💬 رسالة جديدة من النزيل ({$conversation->customer_name}) حول شقة {$apartment->apartment_number}:\n\"{$guardResult['cleaned_message']}\"\nرابط الرد الفوري في بوابتك:\n" . route('investor.chats.show', $conversation->id),
-                'investor',
-                'chat',
-                $conversation->id
+        if ($apartment && $apartment->investor) {
+            if ($apartment->investor->whatsapp) {
+                NotificationService::sendWhatsApp(
+                    $apartment->investor->whatsapp,
+                    "💬 رسالة جديدة من النزيل ({$conversation->customer_name}) حول شقة {$apartment->apartment_number}:\n\"{$guardResult['cleaned_message']}\"\nرابط الرد الفوري في بوابتك:\n" . route('investor.chats.show', $conversation->id),
+                    'investor',
+                    'chat',
+                    $conversation->id
+                );
+            }
+
+            \App\Services\WebPushService::sendToInvestor(
+                $apartment->investor,
+                "💬 رسالة من ({$conversation->customer_name}) - شقة {$apartment->apartment_number}",
+                $guardResult['cleaned_message'],
+                route('investor.chats.show', $conversation->id),
+                'chat-' . $conversation->id
             );
         }
 
@@ -162,7 +182,9 @@ class ChatController extends Controller
                 'id' => $m->id,
                 'sender_type' => $m->sender_type,
                 'sender_name' => $m->sender_name,
-                'message' => $m->message,
+                'message' => $m->is_deleted ? 'تم حذف هذه الرسالة' : $m->message,
+                'is_deleted' => (bool)$m->is_deleted,
+                'is_edited' => (bool)$m->is_edited,
                 'created_at' => $m->created_at->format('H:i'),
                 'is_me' => $m->sender_type === 'customer',
             ];
@@ -171,98 +193,86 @@ class ChatController extends Controller
         return response()->json([
             'status' => $conversation->status,
             'deal_status' => $conversation->deal_status,
-            'offer_price' => $conversation->offer_price,
             'messages' => $messages,
         ]);
     }
 
     /**
-     * Client accepts official deal offer from investor:
-     * Confirms the booking, generates Reception Key Code, and triggers wallet fee deduction.
+     * Client edits their own message
      */
-    public function acceptOffer(Request $request, $token, WalletService $walletService)
+    public function updateMessage(Request $request, $token, Message $message)
     {
-        $conversation = Conversation::where('customer_token', $token)
-            ->with(['apartment.investor'])
-            ->firstOrFail();
-
-        if ($conversation->deal_status !== 'offer_sent' || !$conversation->offer_price) {
-            return back()->with('error', 'لا يوجد عرض رسمي متاح للقبول حالياً.');
+        $conversation = Conversation::where('customer_token', $token)->firstOrFail();
+        if ($message->conversation_id !== $conversation->id) {
+            abort(403);
         }
 
-        $apartment = $conversation->apartment;
-        $investor = $apartment->investor;
-
-        $checkin = $conversation->offer_checkin_date ?? now()->toDateString();
-        $checkout = $conversation->offer_checkout_date ?? now()->addDay()->toDateString();
-        $nights = max(1, Carbon::parse($checkin)->diffInDays(Carbon::parse($checkout)));
-        $totalAmount = (float) $conversation->offer_price;
-        $dailyRate = $totalAmount / $nights;
-
-        // Create official confirmed booking
-        $booking = Booking::create([
-            'apartment_id' => $apartment->id,
-            'customer_name' => $conversation->customer_name,
-            'customer_phone' => $conversation->customer_phone,
-            'checkin_date' => $checkin,
-            'checkout_date' => $checkout,
-            'nights_count' => $nights,
-            'daily_rate' => $dailyRate,
-            'insurance_amount' => 500, // refundable security deposit
-            'total_amount' => $totalAmount,
-            'status' => 'confirmed',
-            'confirmed_at' => now(),
-            'notes' => 'حجز رسمي معتمد عبر التفاوض المباشر بالشات',
-        ]);
-
-        // Link to conversation
-        $conversation->update([
-            'booking_id' => $booking->id,
-            'deal_status' => 'agreed',
-            'client_survey_response' => 'deal_done',
-            'investor_survey_response' => 'deal_done',
-        ]);
-
-        // Deduct platform booking fee from investor wallet
-        $bookingFee = (float) Setting::getValue('booking_fee', 50);
-        if ($investor && $investor->wallet && $bookingFee > 0) {
-            $walletService->deposit(
-                $investor->wallet,
-                -$bookingFee,
-                "رسوم إتمام حجز من الشات (#{$booking->reference_number}) - كود استلام المفتاح: {$booking->reception_code}",
-                auth()->id()
-            );
+        if ($message->sender_type !== 'customer') {
+            return response()->json(['success' => false, 'message' => 'لا يمكنك تعديل رسائل الطرف الآخر'], 403);
         }
 
-        // Post confirmation in chat
-        $conversation->messages()->create([
-            'sender_type' => 'admin',
-            'sender_name' => 'نظام الحجز الفندقي',
-            'message' => "🎉 مبروك! تم إتمام الحجز وتثبيته رسمياً برقم: {$booking->reference_number}\n🔑 كود استلام المفتاح من الاستقبال: [ {$booking->reception_code} ]\nيرجى إبراز هذا الكود عند الوصول لبوابة البرج لاستلام كارت الدخول والمفتاح.",
-            'is_read_by_customer' => true,
-            'is_read_by_investor' => false,
-            'is_read_by_admin' => true,
-        ]);
-
-        AuditService::log('deal_offer_accepted_by_client', $booking, null, [
-            'conversation_id' => $conversation->id,
-            'reception_code' => $booking->reception_code,
-            'total_amount' => $totalAmount,
-        ]);
-
-        // WhatsApp notification to investor
-        if ($investor && $investor->whatsapp) {
-            NotificationService::sendWhatsApp(
-                $investor->whatsapp,
-                "✅ تم قبول عرضك وتأكيد الحجز بنجاح!\nالنزيل: {$booking->customer_name}\nرقم الحجز: {$booking->reference_number}\nالمبلغ الإجمالي: {$booking->total_amount} ريال\nتم إصدار كود تسليم المفتاح ({$booking->reception_code}) للاستقبال وخصم رسوم الخدمة من محفظتك.",
-                'investor',
-                'booking',
-                $booking->id
-            );
+        if ($message->is_deleted) {
+            return response()->json(['success' => false, 'message' => 'لا يمكن تعديل رسالة تم حذفها'], 422);
         }
 
-        return redirect()->route('client.booking.confirmation', $booking->reference_number)
-            ->with('success', 'تم تأكيد حجزك بنجاح! احتفظ بكود استلام المفتاح لإبرازه بالاستقبال.');
+        $validated = $request->validate([
+            'message' => 'required|string|max:2000',
+        ]);
+
+        $guardResult = ChatAntiBypassGuard::inspect($validated['message']);
+
+        // Preserve original text on first edit
+        if (!$message->original_message) {
+            $message->original_message = $message->message;
+        }
+
+        $message->message = $guardResult['cleaned_message'];
+        $message->is_edited = true;
+        $message->edited_at = now();
+        $message->save();
+
+        AuditService::log('message_edited_by_customer', $conversation, null, [
+            'message_id' => $message->id,
+            'original' => $message->original_message,
+            'new' => $message->message,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => $message->message,
+            'is_edited' => true,
+        ]);
+    }
+
+    /**
+     * Client deletes their own message (soft delete with admin audit trail)
+     */
+    public function deleteMessage(Request $request, $token, Message $message)
+    {
+        $conversation = Conversation::where('customer_token', $token)->firstOrFail();
+        if ($message->conversation_id !== $conversation->id) {
+            abort(403);
+        }
+
+        if ($message->sender_type !== 'customer') {
+            return response()->json(['success' => false, 'message' => 'لا يمكنك حذف رسائل الطرف الآخر'], 403);
+        }
+
+        $message->is_deleted = true;
+        $message->deleted_at = now();
+        $message->deleted_by = 'customer';
+        $message->save();
+
+        AuditService::log('message_deleted_by_customer', $conversation, null, [
+            'message_id' => $message->id,
+            'deleted_text' => $message->message,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم حذف الرسالة بنجاح',
+        ]);
+    }
     }
 
     /**

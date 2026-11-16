@@ -56,7 +56,8 @@ Route::post('/apartments/{apartment}/chat/start', [ClientChatController::class, 
 Route::get('/chat/{token}', [ClientChatController::class, 'show'])->name('client.chat.show');
 Route::post('/chat/{token}/send', [ClientChatController::class, 'sendMessage'])->name('client.chat.send');
 Route::get('/chat/{token}/messages', [ClientChatController::class, 'getMessages'])->name('client.chat.messages');
-Route::post('/chat/{token}/accept-offer', [ClientChatController::class, 'acceptOffer'])->name('client.chat.accept-offer');
+Route::put('/chat/{token}/messages/{message}', [ClientChatController::class, 'updateMessage'])->name('client.chat.messages.update');
+Route::delete('/chat/{token}/messages/{message}', [ClientChatController::class, 'deleteMessage'])->name('client.chat.messages.delete');
 Route::post('/chat/{token}/survey', [ClientChatController::class, 'submitSurvey'])->name('client.chat.survey');
 
 /*
@@ -173,6 +174,9 @@ Route::prefix('investor')->name('investor.')->middleware(['auth', 'investor'])->
 
     // Phone / Live Notifications Polling Endpoint
     Route::get('api/unread-alerts', [InvestorDashboardController::class, 'unreadAlerts'])->name('api.unread-alerts');
+    Route::get('api/vapid-key', [InvestorDashboardController::class, 'getVapidKey'])->name('api.vapid-key');
+    Route::post('api/push-subscribe', [InvestorDashboardController::class, 'subscribePush'])->name('api.push-subscribe');
+    Route::post('api/test-push', [InvestorDashboardController::class, 'testPush'])->name('api.test-push');
 
     // Bookings
     Route::get('bookings', [InvestorBookingController::class, 'index'])->name('bookings.index');
@@ -191,7 +195,8 @@ Route::prefix('investor')->name('investor.')->middleware(['auth', 'investor'])->
     Route::get('chats/{conversation}', [InvestorChatController::class, 'show'])->name('chats.show');
     Route::post('chats/{conversation}/send', [InvestorChatController::class, 'sendMessage'])->name('chats.send');
     Route::get('chats/{conversation}/messages', [InvestorChatController::class, 'getMessages'])->name('chats.messages');
-    Route::post('chats/{conversation}/offer', [InvestorChatController::class, 'makeOffer'])->name('chats.offer');
+    Route::put('chats/{conversation}/messages/{message}', [InvestorChatController::class, 'updateMessage'])->name('chats.messages.update');
+    Route::delete('chats/{conversation}/messages/{message}', [InvestorChatController::class, 'deleteMessage'])->name('chats.messages.delete');
     Route::post('chats/{conversation}/survey', [InvestorChatController::class, 'submitSurvey'])->name('chats.survey');
 
     // Wallet
