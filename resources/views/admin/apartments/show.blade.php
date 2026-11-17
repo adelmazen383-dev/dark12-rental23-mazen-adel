@@ -25,7 +25,15 @@
         <h3 class="text-sm font-bold text-slate-900 mb-4">الوسائط المرفوعة (صور وفيديوهات)</h3>
 
         @if($apartment->media->isEmpty())
-            <p class="text-xs text-slate-400">لا توجد وسائط مرفوعة لهذه الشقة بعد.</p>
+            <div class="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-200">
+                <div class="flex items-center gap-3">
+                    <img src="{{ asset('images/apartment-default.svg') }}" class="w-20 h-14 object-cover rounded-lg border border-slate-300">
+                    <div>
+                        <p class="text-xs font-bold text-slate-800">تستخدم الشقة حالياً التصميم الفندقي الافتراضي لبرج دَارِك</p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">تظهر الصورة الفندقية الفاخرة للنزلاء تلقائياً، ويمكن رفع صور وفيديوهات مخصصة</p>
+                    </div>
+                </div>
+            </div>
         @else
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 @foreach($apartment->media as $med)
@@ -35,7 +43,7 @@
                                 <source src="{{ asset('storage/' . $med->file_path) }}">
                             </video>
                         @else
-                            <img src="{{ asset('storage/' . $med->file_path) }}" class="w-full h-36 object-cover">
+                            <img src="{{ asset('storage/' . $med->file_path) }}" class="w-full h-36 object-cover" onerror="this.onerror=null; this.src='{{ asset('images/apartment-default.svg') }}';">
                         @endif
 
                         <form action="{{ route('admin.apartments.delete-media', [$apartment->id, $med->id]) }}" method="POST" onsubmit="return confirm('حذف هذا الملف نهائياً؟');" class="absolute top-2 left-2">

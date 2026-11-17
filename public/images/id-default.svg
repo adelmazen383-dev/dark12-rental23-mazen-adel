@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 540" width="850" height="540">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="50%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#022c22" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <linearGradient id="chipGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.4" />
+    </filter>
+  </defs>
+
+  <rect width="850" height="540" rx="24" fill="url(#bgGrad)" stroke="#334155" stroke-width="2" filter="url(#shadow)" />
+  
+  <!-- Guilloche / Security Pattern Lines -->
+  <g opacity="0.08" stroke="#f59e0b" stroke-width="1.5" fill="none">
+    <circle cx="425" cy="270" r="100" />
+    <circle cx="425" cy="270" r="150" />
+    <circle cx="425" cy="270" r="200" />
+    <circle cx="425" cy="270" r="260" />
+    <circle cx="425" cy="270" r="320" />
+    <path d="M 0,270 Q 425,-50 850,270 Q 425,590 0,270" />
+    <path d="M 0,135 Q 425,-100 850,135" />
+    <path d="M 0,405 Q 425,640 850,405" />
+  </g>
+
+  <!-- Header Section -->
+  <g transform="translate(40, 35)">
+    <!-- Saudi & Tower Emblem Badge -->
+    <rect x="0" y="0" width="55" height="55" rx="14" fill="#065f46" stroke="#10b981" stroke-width="1.5" />
+    <text x="27.5" y="36" font-family="sans-serif" font-size="26" text-anchor="middle" fill="#f59e0b">🏢</text>
+
+    <!-- Header Text -->
+    <text x="75" y="24" font-family="'Cairo', sans-serif" font-size="20" font-weight="bold" fill="#ffffff">المملكة العربية السعودية</text>
+    <text x="75" y="46" font-family="'Cairo', sans-serif" font-size="13" font-weight="bold" fill="#10b981">منصة دَارِك لتنظيم الإيجار العقاري • وثيقة هوية رقمية معتمدة</text>
+
+    <!-- Status Pill -->
+    <rect x="580" y="8" width="180" height="36" rx="18" fill="#10b981" fill-opacity="0.2" stroke="#10b981" stroke-width="1.5" />
+    <circle cx="600" cy="26" r="5" fill="#10b981" />
+    <text x="690" y="31" font-family="'Cairo', sans-serif" font-size="13" font-weight="bold" fill="#34d399" text-anchor="middle">وثيقة مرفوعة ومحققة ✅</text>
+  </g>
+
+  <!-- Separator Line -->
+  <line x1="40" y1="110" x2="810" y2="110" stroke="#334155" stroke-width="1.5" stroke-dasharray="6 4" />
+
+  <!-- Body Content -->
+  <!-- Photo / Avatar Area -->
+  <g transform="translate(620, 140)">
+    <rect width="180" height="230" rx="18" fill="#1e293b" stroke="#f59e0b" stroke-width="2" />
+    <circle cx="90" cy="85" r="42" fill="#334155" />
+    <text x="90" y="98" font-family="sans-serif" font-size="44" text-anchor="middle" fill="#94a3b8">👤</text>
+    <path d="M 30,195 Q 90,140 150,195 Z" fill="#334155" />
+    <rect x="25" y="200" width="130" height="20" rx="6" fill="#0f172a" />
+    <text x="90" y="214" font-family="'Cairo', sans-serif" font-size="11" font-weight="bold" fill="#f59e0b" text-anchor="middle">مستثمر معتمد بالمنصة</text>
+  </g>
+
+  <!-- Smart Chip Graphic -->
+  <g transform="translate(60, 145)">
+    <rect width="65" height="50" rx="8" fill="url(#chipGrad)" stroke="#78350f" stroke-width="1" />
+    <line x1="22" y1="0" x2="22" y2="50" stroke="#78350f" stroke-width="1" />
+    <line x1="43" y1="0" x2="43" y2="50" stroke="#78350f" stroke-width="1" />
+    <line x1="0" y1="25" x2="65" y2="25" stroke="#78350f" stroke-width="1" />
+  </g>
+
+  <!-- Document Details -->
+  <g transform="translate(60, 225)" font-family="'Cairo', sans-serif">
+    <text x="0" y="0" font-size="12" fill="#94a3b8">نوع الوثيقة الرسمية:</text>
+    <text x="0" y="26" font-size="18" font-weight="bold" fill="#f8fafc">الهوية الوطنية / الإقامة النظامية للمستثمر</text>
+
+    <text x="0" y="65" font-size="12" fill="#94a3b8">حالة الاعتماد الإلكتروني:</text>
+    <text x="0" y="90" font-size="16" font-weight="bold" fill="#34d399">تم استلام المستند والتحقق من سريان التوثيق</text>
+
+    <text x="0" y="130" font-size="12" fill="#94a3b8">الرقم المرجعي المشفر للوثيقة:</text>
+    <text x="0" y="155" font-family="monospace" font-size="17" font-weight="bold" fill="#f59e0b">ID-8C76C04C8D</text>
+
+    <text x="0" y="195" font-size="12" fill="#94a3b8">تاريخ التسجيل والرفع:</text>
+    <text x="0" y="218" font-size="15" font-weight="bold" fill="#cbd5e1">2026-11-17 م</text>
+  </g>
+
+  <!-- Official Circular Stamp (Bottom Right) -->
+  <g transform="translate(480, 290)">
+    <circle cx="50" cy="50" r="48" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="8 4" opacity="0.85" />
+    <circle cx="50" cy="50" r="40" fill="none" stroke="#f59e0b" stroke-width="1.5" opacity="0.85" />
+    <text x="50" y="44" font-family="'Cairo', sans-serif" font-size="11" font-weight="bold" fill="#f59e0b" text-anchor="middle">مُعْتَمَد</text>
+    <text x="50" y="62" font-family="'Cairo', sans-serif" font-size="10" font-weight="bold" fill="#f59e0b" text-anchor="middle">منصة دَارِك</text>
+  </g>
+
+  <!-- Footer Bar with Machine Readable Code -->
+  <rect x="0" y="480" width="850" height="60" rx="0" fill="#020617" />
+  <text x="425" y="506" font-family="monospace" font-size="14" fill="#64748b" text-anchor="middle" letter-spacing="4">
+    IDSAU<<ID-8C76C04C8D<<<<<<<<<<<<<<<<<<<<<<VERIFIED
+  </text>
+  <text x="425" y="526" font-family="'Cairo', sans-serif" font-size="11" fill="#475569" text-anchor="middle">
+    وثيقة استثمار رقمية صادرة لأغراض التحقق التشغيلي • أجنحة البرج الفندقية
+  </text>
+</svg>

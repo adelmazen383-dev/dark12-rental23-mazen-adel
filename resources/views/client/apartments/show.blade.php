@@ -45,9 +45,16 @@
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 @foreach($images as $img)
                     <a href="{{ asset('storage/' . $img->file_path) }}" target="_blank" class="block h-28 sm:h-36 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 group">
-                        <img src="{{ asset('storage/' . $img->file_path) }}" alt="صورة الشقة" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        <img src="{{ asset('storage/' . $img->file_path) }}" alt="صورة الشقة" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.onerror=null; this.src='{{ asset('images/apartment-default.svg') }}';">
                     </a>
                 @endforeach
+            </div>
+        </div>
+    @else
+        <div class="space-y-2">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">معاينة الشقة والتجهيزات الفندقية</h3>
+            <div class="h-56 sm:h-80 rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-slate-900">
+                <img src="{{ asset('images/apartment-default.svg') }}" alt="جناح فندقي فاخر" class="w-full h-full object-cover">
             </div>
         </div>
     @endif

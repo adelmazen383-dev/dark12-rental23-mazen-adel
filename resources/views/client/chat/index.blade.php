@@ -112,7 +112,7 @@
                             <div class="flex items-start gap-3.5">
                                 <div class="w-16 h-16 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0">
                                     @if($cover)
-                                        <img src="{{ asset('storage/' . $cover) }}" alt="شقة {{ $apt?->apartment_number }}" class="w-full h-full object-cover">
+                                        <img src="{{ asset('storage/' . $cover) }}" alt="شقة {{ $apt?->apartment_number }}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='{{ asset('images/apartment-default.svg') }}';">
                                     @else
                                         <div class="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100">
                                             <i class="fa-solid fa-hotel text-xl"></i>

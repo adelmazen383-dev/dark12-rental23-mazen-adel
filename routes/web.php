@@ -227,17 +227,42 @@ Route::prefix('investor')->name('investor.')->middleware(['auth', 'investor'])->
     Route::get('subscription', [SubscriptionController::class, 'index'])->name('subscription.index');
 });
 
-// Storage fallback route for serverless environments
+// Storage route for serverless environments (handles both uploaded files and persistent SVG fallbacks)
 Route::get('/storage/{path}', function ($path) {
     $candidates = [
         storage_path('app/public/' . $path),
         '/tmp/storage/app/public/' . $path,
+        base_path('storage/app/public/' . $path),
         public_path('storage/' . $path),
+        public_path($path),
     ];
+
     foreach ($candidates as $file) {
         if (file_exists($file) && is_file($file)) {
-            return response()->file($file);
+            $mime = @mime_content_type($file) ?: 'application/octet-stream';
+            return response()->file($file, [
+                'Content-Type' => $mime,
+                'Cache-Control' => 'public, max-age=86400',
+            ]);
         }
     }
-    abort(404);
+
+    // Dynamic High-Fidelity SVG fallbacks when file is not yet uploaded or container was recycled
+    if (str_contains($path, 'license')) {
+        return \App\Services\FallbackMediaService::renderLicenseDocumentSvg($path);
+    }
+
+    if (str_contains($path, 'id_') || str_contains($path, 'ids')) {
+        return \App\Services\FallbackMediaService::renderIdDocumentSvg($path);
+    }
+
+    if (str_contains($path, 'apartments') || str_contains($path, 'images')) {
+        return \App\Services\FallbackMediaService::renderApartmentImageSvg($path);
+    }
+
+    if (str_contains($path, 'receipt')) {
+        return \App\Services\FallbackMediaService::renderReceiptSvg($path);
+    }
+
+    return \App\Services\FallbackMediaService::renderGenericDocSvg($path);
 })->where('path', '.*');

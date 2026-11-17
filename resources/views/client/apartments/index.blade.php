@@ -307,12 +307,12 @@
                             @if($coverImage)
                                 <img src="{{ asset('storage/' . $coverImage->file_path) }}" 
                                      alt="شقة {{ $apt->apartment_number }}" 
-                                     class="apartment-photo w-full h-full object-cover">
+                                     class="apartment-photo w-full h-full object-cover"
+                                     onerror="this.onerror=null; this.src='{{ asset('images/apartment-default.svg') }}';">
                             @else
-                                <div class="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-gradient-to-b from-slate-800 to-slate-950 space-y-2">
-                                    <i class="fa-solid fa-building text-3xl text-slate-600"></i>
-                                    <span class="text-xs font-bold text-slate-400">جاري تجهيز الصور الفندقية</span>
-                                </div>
+                                <img src="{{ asset('images/apartment-default.svg') }}" 
+                                     alt="شقة {{ $apt->apartment_number }}" 
+                                     class="apartment-photo w-full h-full object-cover">
                             @endif
 
                             <!-- Top Badges: Apartment & Floor -->

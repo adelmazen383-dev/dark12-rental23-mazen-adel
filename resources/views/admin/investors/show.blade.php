@@ -208,17 +208,21 @@
             <!-- ID Document View -->
             <div class="pt-3 border-t">
                 <span class="text-xs font-bold text-slate-700 block mb-2">وثيقة الهوية المرفوعة:</span>
-                @if($investor->id_image)
-                    <a href="{{ asset('storage/' . $investor->id_image) }}" target="_blank" class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between hover:bg-amber-50 transition text-xs">
+                @php
+                    $idDocUrl = $investor->id_image ? asset('storage/' . $investor->id_image) : asset('images/id-default.svg');
+                @endphp
+                <div class="space-y-2">
+                    <a href="{{ $idDocUrl }}" target="_blank" class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between hover:bg-amber-50 transition text-xs">
                         <span class="font-bold text-slate-800 flex items-center gap-2">
-                            <i class="fa-solid fa-file-image text-amber-500 text-base"></i>
-                            <span>معاينة وثيقة الهوية</span>
+                            <i class="fa-solid fa-id-card text-amber-500 text-base"></i>
+                            <span>معاينة وثيقة الهوية (نافذة كاملة)</span>
                         </span>
                         <i class="fa-solid fa-arrow-up-right-from-square text-slate-400"></i>
                     </a>
-                @else
-                    <span class="text-xs text-slate-400">لا توجد وثيقة مرفوعة</span>
-                @endif
+                    <div class="rounded-xl overflow-hidden border border-slate-200 bg-slate-900 h-36">
+                        <img src="{{ $idDocUrl }}" alt="وثيقة الهوية" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='{{ asset('images/id-default.svg') }}';">
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -243,17 +247,21 @@
             <!-- License Document View -->
             <div class="pt-3 border-t">
                 <span class="text-xs font-bold text-slate-700 block mb-2">وثيقة الترخيص السياحي:</span>
-                @if($investor->license_image)
-                    <a href="{{ asset('storage/' . $investor->license_image) }}" target="_blank" class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between hover:bg-amber-50 transition text-xs">
+                @php
+                    $licDocUrl = $investor->license_image ? asset('storage/' . $investor->license_image) : asset('images/license-default.svg');
+                @endphp
+                <div class="space-y-2">
+                    <a href="{{ $licDocUrl }}" target="_blank" class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between hover:bg-amber-50 transition text-xs">
                         <span class="font-bold text-slate-800 flex items-center gap-2">
                             <i class="fa-solid fa-certificate text-emerald-500 text-base"></i>
-                            <span>معاينة وثيقة الترخيص</span>
+                            <span>معاينة وثيقة الترخيص (نافذة كاملة)</span>
                         </span>
                         <i class="fa-solid fa-arrow-up-right-from-square text-slate-400"></i>
                     </a>
-                @else
-                    <span class="text-xs text-slate-400">لا توجد وثيقة مرفوعة</span>
-                @endif
+                    <div class="rounded-xl overflow-hidden border border-slate-200 bg-slate-900 h-40">
+                        <img src="{{ $licDocUrl }}" alt="وثيقة الترخيص" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='{{ asset('images/license-default.svg') }}';">
+                    </div>
+                </div>
             </div>
 
             <div class="p-3 rounded-xl bg-blue-50 border border-blue-200 text-[11px] text-blue-900 leading-relaxed">

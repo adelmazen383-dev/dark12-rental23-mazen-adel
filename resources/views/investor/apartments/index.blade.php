@@ -31,12 +31,9 @@
                 <div class="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm flex flex-col justify-between">
                     <div class="relative h-44 bg-slate-900">
                         @if($cover)
-                            <img src="{{ asset('storage/' . $cover->file_path) }}" class="w-full h-full object-cover">
+                            <img src="{{ asset('storage/' . $cover->file_path) }}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='{{ asset('images/apartment-default.svg') }}';">
                         @else
-                            <div class="w-full h-full flex flex-col items-center justify-center text-slate-500">
-                                <i class="fa-solid fa-building text-2xl mb-1"></i>
-                                <span class="text-[10px]">لا توجد صورة غلاف</span>
-                            </div>
+                            <img src="{{ asset('images/apartment-default.svg') }}" class="w-full h-full object-cover">
                         @endif
 
                         <div class="absolute top-3 right-3 flex gap-1.5">

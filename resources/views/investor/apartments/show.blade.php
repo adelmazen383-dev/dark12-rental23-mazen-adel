@@ -167,7 +167,7 @@
                                 <source src="{{ asset('storage/' . $med->file_path) }}">
                             </video>
                         @else
-                            <img src="{{ asset('storage/' . $med->file_path) }}" class="w-full h-36 object-cover">
+                            <img src="{{ asset('storage/' . $med->file_path) }}" class="w-full h-36 object-cover" onerror="this.onerror=null; this.src='{{ asset('images/apartment-default.svg') }}';">
                         @endif
 
                         <form action="{{ route('investor.apartments.delete-media', [$apartment->id, $med->id]) }}" method="POST" onsubmit="return confirm('حذف هذا الملف؟');" class="absolute top-2 left-2">
