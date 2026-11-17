@@ -314,7 +314,39 @@
             setInterval(pollUnreadAlerts, 6000);
             // Run immediate check
             setTimeout(pollUnreadAlerts, 1500);
+            // Auto re-register SW subscription if already granted (keeps push alive across Vercel instances)
+            if ('serviceWorker' in navigator && 'PushManager' in window && Notification.permission === 'granted') {
+                autoRenewPushSubscription();
+            }
         });
+
+        async function autoRenewPushSubscription() {
+            try {
+                const reg = await navigator.serviceWorker.register('/sw.js');
+                await navigator.serviceWorker.ready;
+                const vapidRes = await fetch("{{ route('investor.api.vapid-key') }}");
+                const vapidData = await vapidRes.json();
+                if (!vapidData.publicKey) return;
+                let sub = await reg.pushManager.getSubscription();
+                if (!sub) {
+                    sub = await reg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey)
+                    });
+                }
+                // Always re-send subscription to keep it saved in current DB instance
+                await fetch("{{ route('investor.api.push-subscribe') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    },
+                    body: JSON.stringify(sub)
+                });
+            } catch (e) {
+                // Silently ignore SW errors
+            }
+        }
 
         function checkNotificationPermissionStatus() {
             const btn = document.getElementById('btnEnableNotifications');
@@ -362,14 +394,20 @@
                     if ('serviceWorker' in navigator && 'PushManager' in window) {
                         try {
                             const reg = await navigator.serviceWorker.register('/sw.js');
+                            await navigator.serviceWorker.ready;
+
                             const vapidRes = await fetch("{{ route('investor.api.vapid-key') }}");
                             const vapidData = await vapidRes.json();
 
                             if (vapidData.publicKey) {
-                                const sub = await reg.pushManager.subscribe({
-                                    userVisibleOnly: true,
-                                    applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey)
-                                });
+                                // Check if already subscribed
+                                let sub = await reg.pushManager.getSubscription();
+                                if (!sub) {
+                                    sub = await reg.pushManager.subscribe({
+                                        userVisibleOnly: true,
+                                        applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey)
+                                    });
+                                }
 
                                 // Send to server
                                 await fetch("{{ route('investor.api.push-subscribe') }}", {
@@ -380,6 +418,15 @@
                                     },
                                     body: JSON.stringify(sub)
                                 });
+
+                                // Register periodic sync for background polling (supported browsers)
+                                if ('periodicSync' in reg) {
+                                    try {
+                                        await reg.periodicSync.register('dark-poll-messages', { minInterval: 60 * 1000 });
+                                    } catch (psErr) {
+                                        // periodicSync not granted or not supported — push will handle it
+                                    }
+                                }
                             }
                         } catch (swErr) {
                             console.warn('Service worker push registration note:', swErr);

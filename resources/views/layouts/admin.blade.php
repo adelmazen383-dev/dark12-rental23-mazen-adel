@@ -16,6 +16,10 @@
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex selection:bg-amber-500 selection:text-white">
 
+    @php
+        $pendingInvestorsCount = \App\Models\Investor::where('status','pending')->count();
+    @endphp
+
     <!-- Sidebar -->
     <aside class="w-64 bg-slate-900 text-slate-200 flex-shrink-0 hidden md:flex flex-col min-h-screen border-l border-slate-800">
         <div class="h-16 flex items-center gap-3 px-6 border-b border-slate-800 bg-slate-950/40">
@@ -41,9 +45,14 @@
                 <span>الشقق والأدوار</span>
             </a>
 
-            <a href="{{ route('admin.investors.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition {{ request()->routeIs('admin.investors.*') ? 'bg-amber-500 text-slate-950 font-bold' : 'hover:bg-slate-800 text-slate-300' }}">
-                <i class="fa-solid fa-user-tie w-5"></i>
-                <span>المستثمرون والتراخيص</span>
+            <a href="{{ route('admin.investors.index') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition {{ request()->routeIs('admin.investors.*') ? 'bg-amber-500 text-slate-950 font-bold' : 'hover:bg-slate-800 text-slate-300' }}">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-user-tie w-5"></i>
+                    <span>المستثمرون والتراخيص</span>
+                </div>
+                @if($pendingInvestorsCount > 0)
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-slate-950 animate-pulse">{{ $pendingInvestorsCount }}</span>
+                @endif
             </a>
 
             <a href="{{ route('admin.bookings.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition {{ request()->routeIs('admin.bookings.*') ? 'bg-amber-500 text-slate-950 font-bold' : 'hover:bg-slate-800 text-slate-300' }}">
@@ -136,6 +145,12 @@
 
             <div class="flex items-center gap-3">
                 <span class="text-xs text-slate-500 hidden sm:inline">{{ now()->translatedFormat('l d F Y') }}</span>
+                @if($pendingInvestorsCount > 0)
+                    <a href="{{ route('admin.investors.index', ['status' => 'pending']) }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-800 text-xs font-bold hover:bg-amber-100 transition animate-pulse">
+                        <i class="fa-solid fa-user-clock text-amber-600"></i>
+                        <span>{{ $pendingInvestorsCount }} مستثمر بانتظار الموافقة</span>
+                    </a>
+                @endif
                 <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             </div>
         </header>
@@ -160,9 +175,14 @@
                     <i class="fa-solid fa-building-user w-4"></i>
                     <span>الشقق والأدوار</span>
                 </a>
-                <a href="{{ route('admin.investors.index') }}" class="flex items-center gap-2.5 p-2 rounded-lg {{ request()->routeIs('admin.investors.*') ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300' }}">
-                    <i class="fa-solid fa-user-tie w-4"></i>
-                    <span>المستثمرون والتراخيص</span>
+                <a href="{{ route('admin.investors.index') }}" class="flex items-center justify-between p-2 rounded-lg {{ request()->routeIs('admin.investors.*') ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300' }}">
+                    <div class="flex items-center gap-2.5">
+                        <i class="fa-solid fa-user-tie w-4"></i>
+                        <span>المستثمرون والتراخيص</span>
+                    </div>
+                    @if($pendingInvestorsCount > 0)
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-slate-950">{{ $pendingInvestorsCount }}</span>
+                    @endif
                 </a>
                 <a href="{{ route('admin.bookings.index') }}" class="flex items-center gap-2.5 p-2 rounded-lg {{ request()->routeIs('admin.bookings.*') ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300' }}">
                     <i class="fa-solid fa-calendar-check w-4"></i>
