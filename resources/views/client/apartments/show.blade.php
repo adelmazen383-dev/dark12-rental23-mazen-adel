@@ -291,20 +291,6 @@
                         </a>
                     </div>
 
-                    <!-- Existing active chat banner if visitor already chatted about this unit -->
-                    <div id="existingChatBanner" class="hidden mb-3 p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center justify-between gap-2">
-                        <div>
-                            <p class="font-black text-xs text-amber-900 flex items-center gap-1.5">
-                                <i class="fa-solid fa-comments text-amber-600"></i>
-                                <span>لديك محادثة جارية بالفعل حول هذه الشقة</span>
-                            </p>
-                            <p class="text-[11px] text-amber-700 mt-0.5">اضغط لمتابعة ردود المالك والرسائل السابقة مباشرة.</p>
-                        </div>
-                        <a id="existingChatLink" href="#" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition whitespace-nowrap shadow-sm">
-                            متابعة المحادثة
-                        </a>
-                    </div>
-
                     <!-- Chat Start Form -->
                     <form action="{{ route('client.chat.start', $apartment->id) }}" method="POST" class="space-y-3">
                         @csrf

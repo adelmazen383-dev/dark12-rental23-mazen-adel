@@ -157,10 +157,10 @@
     const getUrl = @json(route('client.chat.messages', $conversation->customer_token));
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-    // Store active chat token locally so customer can easily resume anytime
+    // Clear any previous persistent tokens for strict privacy
     try {
-        localStorage.setItem('dark_last_chat_token', token);
-        localStorage.setItem('dark_last_chat_apt', '{{ $conversation->apartment->apartment_number }}');
+        localStorage.removeItem('dark_last_chat_token');
+        localStorage.removeItem('dark_last_chat_apt');
     } catch(e) {}
 
     function scrollToBottom() {

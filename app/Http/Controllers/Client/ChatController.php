@@ -11,25 +11,34 @@ use Illuminate\Http\Request;
 class ChatController extends Controller
 {
     /**
-     * List all conversations belonging to the client by their phone number
+     * List all conversations belonging to the client ONLY when explicitly requested with phone.
+     * Ensures 100% privacy: once the visitor leaves, chats disappear completely.
      */
     public function index(Request $request)
     {
-        $phone = $request->query('phone') ?? session('client_phone') ?? $request->cookie('dark_client_phone');
+        // Forcibly clear any persistent cookie
+        cookie()->queue(cookie()->forget('dark_client_phone'));
+        session()->forget('client_phone');
+
+        $phone = $request->query('phone');
+        if ($phone) {
+            $phone = trim($phone);
+        }
 
         $conversations = collect();
-        if ($phone) {
+        if (!empty($phone)) {
             $conversations = Conversation::where('customer_phone', $phone)
                 ->with(['apartment.media', 'investor.user', 'latestMessage'])
                 ->orderByDesc('last_message_at')
                 ->get();
         }
 
-        return view('client.chat.index', compact('conversations', 'phone'));
+        return response(view('client.chat.index', compact('conversations', 'phone')))
+            ->withCookie(cookie()->forget('dark_client_phone'));
     }
 
     /**
-     * Lookup client conversations by phone
+     * Lookup client conversations by phone (one-time request)
      */
     public function lookup(Request $request)
     {
@@ -40,8 +49,6 @@ class ChatController extends Controller
         ]);
 
         $phone = trim($validated['phone']);
-        session(['client_phone' => $phone]);
-        cookie()->queue(cookie('dark_client_phone', $phone, 60 * 24 * 30));
 
         return redirect()->route('client.chat.index', ['phone' => $phone]);
     }
@@ -57,9 +64,6 @@ class ChatController extends Controller
             'initial_message' => 'nullable|string|max:1000',
             'booking_id' => 'nullable|exists:bookings,id',
         ]);
-
-        session(['client_phone' => $validated['customer_phone']]);
-        cookie()->queue(cookie('dark_client_phone', $validated['customer_phone'], 60 * 24 * 30));
 
         // Find existing open conversation for this apartment & phone, or create new
         $conversation = Conversation::where('apartment_id', $apartment->id)
@@ -130,9 +134,6 @@ class ChatController extends Controller
         $conversation = Conversation::where('customer_token', $token)
             ->with(['apartment.investor', 'messages', 'booking'])
             ->firstOrFail();
-
-        session(['client_phone' => $conversation->customer_phone]);
-        cookie()->queue(cookie('dark_client_phone', $conversation->customer_phone, 60 * 24 * 30));
 
         // Mark incoming messages as read by customer
         $conversation->messages()
