@@ -347,33 +347,47 @@ class TowerPlatformTest extends TestCase
     public function test_forgot_password_workflow_and_verification(): void
     {
         $investorUser = User::where('role', 'investor')->first();
-        $investor = $investorUser->investor;
 
         // 1. View forgot password page
         $pageResp = $this->get('/password/forgot');
         $pageResp->assertStatus(200);
         $pageResp->assertSee('استعادة كلمة المرور');
 
-        // 2. Failed verification with wrong ID / phone
-        $failResp = $this->post('/password/reset', [
+        // 2. Request OTP email
+        $otpResp = $this->post('/password/send-otp', [
             'email' => $investorUser->email,
-            'verification_data' => '9999999999',
+        ]);
+        $otpResp->assertRedirect();
+        $this->assertDatabaseHas('password_reset_tokens', [
+            'email' => $investorUser->email,
+        ]);
+
+        $record = \Illuminate\Support\Facades\DB::table('password_reset_tokens')
+            ->where('email', $investorUser->email)
+            ->first();
+        $this->assertNotNull($record);
+        $correctOtp = $record->token;
+
+        // 3. Failed verification with wrong OTP
+        $failResp = $this->post('/password/verify-otp', [
+            'email' => $investorUser->email,
+            'otp' => '000000',
             'password' => 'NewPassword123!',
             'password_confirmation' => 'NewPassword123!',
         ]);
-        $failResp->assertSessionHasErrors('verification_data');
+        $failResp->assertSessionHasErrors('otp');
 
-        // 3. Successful verification with correct National ID
-        $successResp = $this->post('/password/reset', [
+        // 4. Successful verification with correct OTP
+        $successResp = $this->post('/password/verify-otp', [
             'email' => $investorUser->email,
-            'verification_data' => $investor->id_number,
+            'otp' => $correctOtp,
             'password' => 'BrandNewSecret2026!',
             'password_confirmation' => 'BrandNewSecret2026!',
         ]);
         $successResp->assertRedirect('/login');
         $successResp->assertSessionHas('success');
 
-        // 4. Verify login with new password
+        // 5. Verify login with new password
         $loginResp = $this->post('/login', [
             'email' => $investorUser->email,
             'password' => 'BrandNewSecret2026!',
