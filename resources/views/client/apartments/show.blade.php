@@ -281,9 +281,15 @@
                         </div>
                         <h3 class="font-bold text-sm text-gray-900">الخيار الثاني: محادثة صاحب الشقة</h3>
                     </div>
-                    <p class="text-xs text-gray-500 mb-4">
-                        هل لديك استفسار محدد أو ترغب بالتفاوض؟ ابدأ محادثة فورية ومباشرة مع مالك الشقة الآن.
-                    </p>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                        <p class="text-xs text-gray-500">
+                            هل لديك استفسار محدد أو ترغب بالتفاوض؟ ابدأ محادثة فورية ومباشرة مع مالك الشقة الآن.
+                        </p>
+                        <a href="{{ route('client.chat.index') }}" class="text-[11px] text-amber-600 font-bold hover:underline whitespace-nowrap flex items-center gap-1 self-start sm:self-auto">
+                            <i class="fa-solid fa-comments"></i>
+                            <span>محادثاتي السابقة</span>
+                        </a>
+                    </div>
 
                     <!-- Existing active chat banner if visitor already chatted about this unit -->
                     <div id="existingChatBanner" class="hidden mb-3 p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center justify-between gap-2">

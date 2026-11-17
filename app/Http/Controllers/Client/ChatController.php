@@ -11,6 +11,42 @@ use Illuminate\Http\Request;
 class ChatController extends Controller
 {
     /**
+     * List all conversations belonging to the client by their phone number
+     */
+    public function index(Request $request)
+    {
+        $phone = $request->query('phone') ?? session('client_phone') ?? $request->cookie('dark_client_phone');
+
+        $conversations = collect();
+        if ($phone) {
+            $conversations = Conversation::where('customer_phone', $phone)
+                ->with(['apartment.media', 'investor.user', 'latestMessage'])
+                ->orderByDesc('last_message_at')
+                ->get();
+        }
+
+        return view('client.chat.index', compact('conversations', 'phone'));
+    }
+
+    /**
+     * Lookup client conversations by phone
+     */
+    public function lookup(Request $request)
+    {
+        $validated = $request->validate([
+            'phone' => 'required|string|max:20',
+        ], [
+            'phone.required' => 'يرجى إدخال رقم الجوال.',
+        ]);
+
+        $phone = trim($validated['phone']);
+        session(['client_phone' => $phone]);
+        cookie()->queue(cookie('dark_client_phone', $phone, 60 * 24 * 30));
+
+        return redirect()->route('client.chat.index', ['phone' => $phone]);
+    }
+
+    /**
      * Start or resume a conversation from client side
      */
     public function start(Request $request, Apartment $apartment)
@@ -21,6 +57,9 @@ class ChatController extends Controller
             'initial_message' => 'nullable|string|max:1000',
             'booking_id' => 'nullable|exists:bookings,id',
         ]);
+
+        session(['client_phone' => $validated['customer_phone']]);
+        cookie()->queue(cookie('dark_client_phone', $validated['customer_phone'], 60 * 24 * 30));
 
         // Find existing open conversation for this apartment & phone, or create new
         $conversation = Conversation::where('apartment_id', $apartment->id)
@@ -91,6 +130,9 @@ class ChatController extends Controller
         $conversation = Conversation::where('customer_token', $token)
             ->with(['apartment.investor', 'messages', 'booking'])
             ->firstOrFail();
+
+        session(['client_phone' => $conversation->customer_phone]);
+        cookie()->queue(cookie('dark_client_phone', $conversation->customer_phone, 60 * 24 * 30));
 
         // Mark incoming messages as read by customer
         $conversation->messages()

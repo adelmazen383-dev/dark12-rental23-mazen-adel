@@ -95,5 +95,42 @@
         </div>
     </form>
 
+    <!-- Change Password Form -->
+    <form action="{{ route('investor.profile.password') }}" method="POST" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+        @csrf
+        @method('PUT')
+
+        <h3 class="font-bold text-sm text-slate-900 border-b pb-3 flex items-center gap-2">
+            <i class="fa-solid fa-key text-amber-500"></i>
+            <span>تغيير كلمة المرور الخاصة بحسابك</span>
+        </h3>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">كلمة المرور الحالية *</label>
+                <input type="password" name="current_password" required dir="ltr" placeholder="••••••••"
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-amber-500 text-left">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">كلمة المرور الجديدة *</label>
+                <input type="password" name="password" required minlength="8" dir="ltr" placeholder="••••••••"
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-amber-500 text-left">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">تأكيد كلمة المرور الجديدة *</label>
+                <input type="password" name="password_confirmation" required minlength="8" dir="ltr" placeholder="••••••••"
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-amber-500 text-left">
+            </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+            <span class="text-[11px] text-slate-400">يجب ألا تقل كلمة المرور عن 8 خانات.</span>
+            <button type="submit" class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition shadow-xs flex items-center gap-1.5">
+                <i class="fa-solid fa-check"></i>
+                <span>تحديث كلمة المرور</span>
+            </button>
+        </div>
+    </form>
+
 </div>
 @endsection

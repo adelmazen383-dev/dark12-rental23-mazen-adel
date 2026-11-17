@@ -67,6 +67,8 @@ Route::get('/booking/{booking:reference_number}/confirmation', [ClientBookingCon
 Route::post('/apartments/{apartment}/inspect', [InspectionController::class, 'store'])->name('client.inspection.store');
 
 // Client Chat routes
+Route::get('/my-chats', [ClientChatController::class, 'index'])->name('client.chat.index');
+Route::post('/my-chats/lookup', [ClientChatController::class, 'lookup'])->name('client.chat.lookup');
 Route::post('/apartments/{apartment}/chat/start', [ClientChatController::class, 'start'])->name('client.chat.start');
 Route::get('/chat/{token}', [ClientChatController::class, 'show'])->name('client.chat.show');
 Route::post('/chat/{token}/send', [ClientChatController::class, 'sendMessage'])->name('client.chat.send');
@@ -88,7 +90,10 @@ Route::get('/investor/register', [InvestorRegisterController::class, 'showRegist
 Route::post('/investor/register', [InvestorRegisterController::class, 'register']);
 
 Route::get('/password/forgot', [ForgotPasswordController::class, 'showResetForm'])->name('password.request');
-Route::post('/password/reset', [ForgotPasswordController::class, 'resetPassword'])->name('password.update');
+Route::post('/password/send-otp', [ForgotPasswordController::class, 'sendOtp'])->name('password.send_otp');
+Route::get('/password/verify-otp', [ForgotPasswordController::class, 'showVerifyForm'])->name('password.verify');
+Route::post('/password/verify-otp', [ForgotPasswordController::class, 'verifyOtpAndReset'])->name('password.verify_submit');
+Route::post('/password/reset', [ForgotPasswordController::class, 'verifyOtpAndReset'])->name('password.update');
 
 /*
 |--------------------------------------------------------------------------
@@ -179,6 +184,7 @@ Route::prefix('investor')->name('investor.')->middleware(['auth', 'investor'])->
     // Profile
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
 
     // Apartments
     Route::resource('apartments', InvestorApartmentController::class);
@@ -220,3 +226,18 @@ Route::prefix('investor')->name('investor.')->middleware(['auth', 'investor'])->
     // Subscription
     Route::get('subscription', [SubscriptionController::class, 'index'])->name('subscription.index');
 });
+
+// Storage fallback route for serverless environments
+Route::get('/storage/{path}', function ($path) {
+    $candidates = [
+        storage_path('app/public/' . $path),
+        '/tmp/storage/app/public/' . $path,
+        public_path('storage/' . $path),
+    ];
+    foreach ($candidates as $file) {
+        if (file_exists($file) && is_file($file)) {
+            return response()->file($file);
+        }
+    }
+    abort(404);
+})->where('path', '.*');

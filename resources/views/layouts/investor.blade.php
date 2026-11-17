@@ -400,6 +400,28 @@
             }
         }
 
+        async function testLivePushNotification() {
+            try {
+                showToastAlert('جاري إرسال إشعار تجريبي...', 'يتم الآن إرسال إشعار خلفية عبر خادم المنصة إلى هاتفك...', '#', 'info');
+                const res = await fetch("{{ route('investor.api.test-push') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToastAlert('تم إرسال الإشعار بنجاح!', 'تحقق من شاشة هاتفك الآن أو قائمة التنبيهات.', '#', 'success');
+                } else {
+                    alert(data.message || 'يرجى الضغط على زر تفعيل الإشعارات أولاً والسماح للمتصفح بإرسال التنبيهات.');
+                }
+            } catch (e) {
+                console.error('Test push error:', e);
+                alert('يرجى التأكد من الضغط على "تفعيل إشعارات الجوال" أولاً والسماح بالإشعارات.');
+            }
+        }
+
         function urlBase64ToUint8Array(base64String) {
             const padding = '='.repeat((4 - base64String.length % 4) % 4);
             const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');

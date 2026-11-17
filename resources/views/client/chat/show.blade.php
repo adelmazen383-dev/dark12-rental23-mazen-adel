@@ -31,9 +31,15 @@
             </div>
         </div>
 
-        <a href="{{ route('client.apartments.show', $conversation->apartment_id) }}" class="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition text-xs flex items-center gap-1" title="عرض تفاصيل الشقة">
-            <i class="fa-solid fa-arrow-left"></i>
-        </a>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('client.chat.index') }}" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition flex items-center gap-1.5" title="قائمة كل محادثاتي">
+                <i class="fa-solid fa-comments text-amber-500"></i>
+                <span class="hidden sm:inline">كل محادثاتي</span>
+            </a>
+            <a href="{{ route('client.apartments.show', $conversation->apartment_id) }}" class="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition text-xs flex items-center gap-1" title="عرض تفاصيل الشقة">
+                <i class="fa-solid fa-hotel text-slate-500"></i>
+            </a>
+        </div>
     </div>
 
     {{-- ===== DEAL STATUS BADGE ===== --}}

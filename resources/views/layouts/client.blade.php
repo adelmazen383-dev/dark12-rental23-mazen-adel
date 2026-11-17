@@ -159,6 +159,12 @@
                     <span>تصفح الشقق</span>
                 </a>
 
+                <a href="{{ route('client.chat.index') }}" 
+                   class="transition-colors hover:text-amber-600 py-2 flex items-center gap-1.5 {{ request()->routeIs('client.chat.*') ? 'nav-item-active font-extrabold text-amber-600' : '' }}">
+                    <i class="fa-solid fa-comments text-amber-500 text-sm"></i>
+                    <span>محادثاتي</span>
+                </a>
+
                 <a href="{{ route('client.services') }}" 
                    class="transition-colors hover:text-amber-600 py-2 flex items-center gap-1.5 {{ request()->routeIs('client.services') ? 'nav-item-active font-extrabold' : '' }}">
                     <i class="fa-solid fa-layer-group text-indigo-500 text-sm"></i>
@@ -246,6 +252,12 @@
                        class="flex items-center gap-3 p-3 rounded-2xl font-bold text-xs {{ request()->routeIs('client.apartments.index') ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'text-slate-700 hover:bg-slate-50' }}">
                         <i class="fa-solid fa-hotel text-amber-500 text-sm w-5"></i>
                         <span>تصفح الشقق المتاحة</span>
+                    </a>
+
+                    <a href="{{ route('client.chat.index') }}" onclick="toggleMobileDrawer()" 
+                       class="flex items-center gap-3 p-3 rounded-2xl font-bold text-xs {{ request()->routeIs('client.chat.*') ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'text-slate-700 hover:bg-slate-50' }}">
+                        <i class="fa-solid fa-comments text-amber-500 text-sm w-5"></i>
+                        <span>محادثاتي مع المُلّاك</span>
                     </a>
 
                     <a href="{{ route('client.services') }}" onclick="toggleMobileDrawer()" 
@@ -388,12 +400,11 @@
                 <span class="text-[10px] font-bold">الشقق</span>
             </a>
 
-            <!-- Tab 2: Services -->
-            <a href="{{ route('client.services') }}" 
-               class="flex flex-col items-center gap-1 transition relative {{ request()->routeIs('client.services') ? 'text-indigo-400 scale-105' : 'text-slate-400 hover:text-slate-200' }}">
-                <i class="fa-solid fa-layer-group text-base"></i>
-                <span class="text-[10px] font-bold">خدماتنا</span>
-                <span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+            <!-- Tab 2: My Chats -->
+            <a href="{{ route('client.chat.index') }}" 
+               class="flex flex-col items-center gap-1 transition relative {{ request()->routeIs('client.chat.*') ? 'text-amber-400 scale-105' : 'text-slate-400 hover:text-slate-200' }}">
+                <i class="fa-solid fa-comments text-base"></i>
+                <span class="text-[10px] font-bold">محادثاتي</span>
             </a>
 
             <!-- Center Action Button: Quick Book & Browse Float -->
@@ -402,11 +413,11 @@
                 <i class="fa-solid fa-magnifying-glass text-lg"></i>
             </a>
 
-            <!-- Tab 3: About Us -->
-            <a href="{{ route('client.about') }}" 
-               class="flex flex-col items-center gap-1 transition {{ request()->routeIs('client.about') ? 'text-amber-400 scale-105' : 'text-slate-400 hover:text-slate-200' }}">
-                <i class="fa-solid fa-shield-halved text-base"></i>
-                <span class="text-[10px] font-bold">من نحن</span>
+            <!-- Tab 3: Services -->
+            <a href="{{ route('client.services') }}" 
+               class="flex flex-col items-center gap-1 transition relative {{ request()->routeIs('client.services') ? 'text-indigo-400 scale-105' : 'text-slate-400 hover:text-slate-200' }}">
+                <i class="fa-solid fa-layer-group text-base"></i>
+                <span class="text-[10px] font-bold">خدماتنا</span>
             </a>
 
             <!-- Tab 4: Account / Login -->

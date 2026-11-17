@@ -53,17 +53,28 @@
                 @php
                     $unread = $c->unreadMessagesForInvestorCount();
                     $lastMsg = $c->latestMessage;
+                    $apt = $c->apartment;
+                    $cover = $apt?->media?->first()?->file_path;
                 @endphp
                 <a href="{{ route('investor.chats.show', $c->id) }}" class="p-4 hover:bg-slate-50/80 transition flex items-start justify-between gap-4 block">
-                    <div class="flex items-start gap-3 min-w-0">
-                        <div class="w-11 h-11 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-lg flex-shrink-0 font-bold border border-emerald-500/20">
-                            <i class="fa-solid fa-user"></i>
+                    <div class="flex items-start gap-3.5 min-w-0">
+                        <div class="w-14 h-14 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0 shadow-xs">
+                            @if($cover)
+                                <img src="{{ asset('storage/' . $cover) }}" alt="شقة {{ $apt?->apartment_number }}" class="w-full h-full object-cover">
+                            @else
+                                <div class="w-full h-full flex items-center justify-center text-slate-400 bg-slate-50">
+                                    <i class="fa-solid fa-hotel text-lg text-emerald-600"></i>
+                                </div>
+                            @endif
                         </div>
                         <div class="min-w-0">
-                            <div class="flex items-center gap-2">
+                            <div class="flex flex-wrap items-center gap-2 mb-1">
                                 <h3 class="font-bold text-sm text-slate-900 truncate">{{ $c->customer_name }}</h3>
-                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700">
-                                    شقة {{ $c->apartment->apartment_number }}
+                                <span class="px-2.5 py-0.5 rounded-lg text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                    شقة {{ $apt?->apartment_number }} (الدور {{ $apt?->floor_number }})
+                                </span>
+                                <span class="text-[10px] font-semibold text-slate-500">
+                                    {{ number_format($apt?->daily_price ?? 0) }} ريال/اليوم
                                 </span>
                                 @if($unread > 0)
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white animate-pulse">
@@ -73,7 +84,8 @@
                             </div>
                             <p class="text-xs text-slate-500 truncate mt-1">
                                 @if($lastMsg)
-                                    <strong class="text-slate-700">{{ $lastMsg->sender_name }}:</strong> {{ $lastMsg->message }}
+                                    <strong class="text-slate-700">{{ $lastMsg->sender_name }}:</strong> 
+                                    {{ $lastMsg->is_deleted ? 'تم حذف هذه الرسالة' : $lastMsg->message }}
                                 @else
                                     <em>بدء المحادثة</em>
                                 @endif

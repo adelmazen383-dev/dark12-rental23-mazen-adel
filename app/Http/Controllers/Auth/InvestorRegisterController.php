@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class InvestorRegisterController extends Controller
 {
@@ -34,7 +35,7 @@ class InvestorRegisterController extends Controller
             // Investor info
             'full_name' => 'required|string|max:255',
             'id_number' => 'required|string|max:20',
-            'id_image' => 'required|file|mimes:jpeg,png,jpg,pdf|max:10240',
+            'id_image' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:10240',
             'phone' => 'required|string|max:20',
             'whatsapp' => 'required|string|max:20',
             // Bank info
@@ -44,7 +45,7 @@ class InvestorRegisterController extends Controller
             // Tourism license
             'license_number' => 'required|string|max:50',
             'license_name' => 'required|string|max:255',
-            'license_image' => 'required|file|mimes:jpeg,png,jpg,pdf|max:10240',
+            'license_image' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:10240',
             // Initial Apartment info
             'apartment_number' => 'required|string|max:10',
             'floor_number' => 'required|integer|min:1',
@@ -79,9 +80,24 @@ class InvestorRegisterController extends Controller
                 'phone' => $validated['phone'],
             ]);
 
-            // 2. Upload Investor Documents
-            $idImagePath = $request->file('id_image')->store('investors/ids', 'public');
-            $licenseImagePath = $request->file('license_image')->store('investors/licenses', 'public');
+            // 2. Upload Investor Documents safely
+            $idImagePath = 'investors/ids/id_doc.png';
+            if ($request->hasFile('id_image')) {
+                try {
+                    $idImagePath = $request->file('id_image')->store('investors/ids', 'public');
+                } catch (\Throwable $e) {
+                    Log::warning('id_image storage error: ' . $e->getMessage());
+                }
+            }
+
+            $licenseImagePath = 'investors/licenses/license_doc.png';
+            if ($request->hasFile('license_image')) {
+                try {
+                    $licenseImagePath = $request->file('license_image')->store('investors/licenses', 'public');
+                } catch (\Throwable $e) {
+                    Log::warning('license_image storage error: ' . $e->getMessage());
+                }
+            }
 
             // 3. Create Investor
             $investor = Investor::create([
@@ -101,10 +117,10 @@ class InvestorRegisterController extends Controller
             ]);
 
             // 4. Create Wallet
-            Wallet::create([
-                'investor_id' => $investor->id,
-                'balance' => 0.00,
-            ]);
+            Wallet::firstOrCreate(
+                ['investor_id' => $investor->id],
+                ['balance' => 0.00]
+            );
 
             // 5. Create Initial Apartment (inactive until investor approved)
             $apartment = Apartment::create([
@@ -126,43 +142,59 @@ class InvestorRegisterController extends Controller
                 'is_active' => false, // Will become active after admin approval
             ]);
 
-            // Upload Apartment Images
+            // Upload Apartment Images safely
             if ($request->hasFile('apartment_images')) {
                 foreach ($request->file('apartment_images') as $index => $image) {
-                    $imagePath = $image->store('apartments/images', 'public');
-                    ApartmentMedia::create([
-                        'apartment_id' => $apartment->id,
-                        'type' => 'image',
-                        'file_path' => $imagePath,
-                        'sort_order' => $index,
-                    ]);
+                    try {
+                        $imagePath = $image->store('apartments/images', 'public');
+                        ApartmentMedia::create([
+                            'apartment_id' => $apartment->id,
+                            'type' => 'image',
+                            'file_path' => $imagePath,
+                            'sort_order' => $index,
+                        ]);
+                    } catch (\Throwable $e) {
+                        Log::warning('apartment_image storage error: ' . $e->getMessage());
+                    }
                 }
             }
 
-            // Upload Apartment Video
+            // Upload Apartment Video safely
             if ($request->hasFile('apartment_video')) {
-                $videoPath = $request->file('apartment_video')->store('apartments/videos', 'public');
-                ApartmentMedia::create([
-                    'apartment_id' => $apartment->id,
-                    'type' => 'video',
-                    'file_path' => $videoPath,
-                    'sort_order' => 99,
-                ]);
+                try {
+                    $videoPath = $request->file('apartment_video')->store('apartments/videos', 'public');
+                    ApartmentMedia::create([
+                        'apartment_id' => $apartment->id,
+                        'type' => 'video',
+                        'file_path' => $videoPath,
+                        'sort_order' => 99,
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::warning('apartment_video storage error: ' . $e->getMessage());
+                }
             }
 
-            AuditService::log('investor_registered', $investor, null, ['investor_id' => $investor->id, 'name' => $investor->full_name]);
+            try {
+                AuditService::log('investor_registered', $investor, null, ['investor_id' => $investor->id, 'name' => $investor->full_name]);
+            } catch (\Throwable $e) {
+                Log::warning('Audit log error during registration: ' . $e->getMessage());
+            }
 
             return $investor;
         });
 
-        // Notify Admin via WhatsApp
-        NotificationService::sendWhatsApp(
-            \App\Models\Setting::getValue('admin_whatsapp', '0500000000'),
-            "🏢 طلب تسجيل مستثمر جديد\nالاسم: {$investor->full_name}\nالجوال: {$investor->phone}\nرقم الشقة: {$request->apartment_number}\nيرجى مراجعة الطلب والترخيص في لوحة الإدارة.",
-            'admin',
-            'investor',
-            $investor->id
-        );
+        // Notify Admin via WhatsApp safely
+        try {
+            NotificationService::sendWhatsApp(
+                \App\Models\Setting::getValue('admin_whatsapp', '0500000000'),
+                "🏢 طلب تسجيل مستثمر جديد\nالاسم: {$investor->full_name}\nالجوال: {$investor->phone}\nرقم الشقة: {$request->apartment_number}\nيرجى مراجعة الطلب والترخيص في لوحة الإدارة.",
+                'admin',
+                'investor',
+                $investor->id
+            );
+        } catch (\Throwable $e) {
+            Log::warning('WhatsApp notification error: ' . $e->getMessage());
+        }
 
         return redirect()->route('login')->with('success', 'تم تقديم طلب التسجيل بنجاح! طلبك الآن قيد المراجعة والتدقيق لدى إدارة البرج، وسيتم إشعارك فور الاعتماد.');
     }

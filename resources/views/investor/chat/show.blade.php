@@ -5,30 +5,65 @@
 @section('content')
 <div class="max-w-4xl mx-auto space-y-4">
 
-    <!-- Top info bar -->
-    <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-            <div class="w-11 h-11 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-lg flex-shrink-0 font-bold border border-emerald-500/20">
-                <i class="fa-solid fa-comments"></i>
+    <!-- Top Apartment & Chat Context Banner -->
+    @php
+        $apt = $conversation->apartment;
+        $cover = $apt?->media?->first()?->file_path;
+    @endphp
+    <div class="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <!-- Apartment Thumbnail -->
+            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-slate-100 border-2 border-emerald-500/30 flex-shrink-0 shadow-xs">
+                @if($cover)
+                    <img src="{{ asset('storage/' . $cover) }}" alt="شقة {{ $apt?->apartment_number }}" class="w-full h-full object-cover">
+                @else
+                    <div class="w-full h-full flex items-center justify-center text-slate-400 bg-slate-50">
+                        <i class="fa-solid fa-hotel text-2xl text-emerald-600"></i>
+                    </div>
+                @endif
             </div>
-            <div>
-                <div class="flex items-center gap-2">
-                    <h2 class="font-bold text-sm text-slate-900">محادثة النزيل: {{ $conversation->customer_name }}</h2>
-                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">شقة {{ $conversation->apartment->apartment_number }} (الدور {{ $conversation->apartment->floor_number }})</span>
+
+            <!-- Apartment & Client Info -->
+            <div class="space-y-1">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="px-3 py-1 rounded-xl text-xs sm:text-sm font-black bg-emerald-600 text-white shadow-xs">
+                        شقة رقم {{ $apt?->apartment_number }}
+                    </span>
+                    <span class="px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                        الدور {{ $apt?->floor_number }}
+                    </span>
+                    <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200">
+                        {{ number_format($apt?->daily_price ?? 0) }} ريال/اليوم
+                    </span>
                 </div>
-                <p class="text-xs text-slate-500 mt-0.5">
-                    @if($conversation->booking)
-                        <span class="text-emerald-700 font-bold font-sans">مرتبط بحجز مؤكد #{{ $conversation->booking->reference_number }}</span>
-                    @else
-                        <span class="text-slate-400">محادثة واستفسار مباشر وآمن داخل المنصة</span>
-                    @endif
-                </p>
+
+                <div class="text-xs text-slate-600 flex items-center gap-2 pt-0.5">
+                    <span>النزيل المتواصل: <strong class="text-slate-900 font-bold">{{ $conversation->customer_name }}</strong></span>
+                    <span>•</span>
+                    <span class="text-slate-400">{{ $apt?->rooms_count ?? 1 }} غرف • تأمين {{ number_format($apt?->insurance_amount ?? 0) }} ريال</span>
+                </div>
+
+                @if($conversation->booking)
+                    <p class="text-xs text-emerald-700 font-bold flex items-center gap-1.5 pt-0.5">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>مرتبط بحجز مؤكد #{{ $conversation->booking->reference_number }}</span>
+                    </p>
+                @endif
             </div>
         </div>
 
-        <div class="flex items-center gap-2">
-            <a href="{{ route('investor.chats.index') }}" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
-                العودة للقائمة
+        <div class="flex items-center gap-2 self-start md:self-center">
+            @if($apt)
+                <a href="{{ route('client.apartments.show', $apt->id) }}" target="_blank" 
+                   class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition flex items-center gap-1.5 border border-slate-200">
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[11px] text-emerald-600"></i>
+                    <span>معاينة الشقة في المنصة</span>
+                </a>
+            @endif
+
+            <a href="{{ route('investor.chats.index') }}" class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-xs">
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                <span>العودة للقائمة</span>
             </a>
         </div>
     </div>
