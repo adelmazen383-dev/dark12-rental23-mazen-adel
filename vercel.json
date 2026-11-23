@@ -61,12 +61,11 @@
     "SESSION_DRIVER": "database",
     "LOG_CHANNEL": "stderr",
     "DB_CONNECTION": "mysql",
-    "DB_HOST": "@DB_HOST",
-    "DB_PORT": "3306",
-    "DB_DATABASE": "@DB_DATABASE",
-    "DB_USERNAME": "@DB_USERNAME",
-    "DB_PASSWORD": "@DB_PASSWORD",
-    "MYSQL_ATTR_SSL_CA": "/etc/ssl/certs/ca-certificates.crt",
+    "DB_HOST": "on4x7k.h.filess.io",
+    "DB_PORT": "3307",
+    "DB_DATABASE": "tower_rental_attackmove",
+    "DB_USERNAME": "tower_rental_attackmove",
+    "DB_PASSWORD": "bb31b62e25ba17110bb4d6d920eaf4c9e630f432",
     "QUEUE_CONNECTION": "database"
   }
 }
