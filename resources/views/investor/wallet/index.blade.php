@@ -31,13 +31,16 @@
             </div>
 
             <!-- Booking Fee Disclosure -->
-            <div class="bg-slate-800/80 rounded-xl p-4 border border-slate-700/80 text-xs space-y-1 sm:max-w-xs">
-                <span class="text-amber-400 font-bold block mb-1">سياسة المنصة ورسوم الحجوزات:</span>
+            <div class="bg-slate-800/80 rounded-xl p-4 border border-slate-700/80 text-xs space-y-1.5 sm:max-w-xs">
+                <span class="text-amber-400 font-bold block mb-1">سياسة المنصة ورسوم المعاملات:</span>
                 <p class="text-slate-300">
-                    يتم خصم رسم ثابت قدره <strong class="text-white">{{ number_format($bookingFee, 2) }} ريال</strong> عند تأكيد الحجز النهائي فقط.
+                    يتم خصم <strong class="text-emerald-400 font-black">{{ number_format($bookingFee, 0) }} ريال</strong> عند تأكيد كل حجز إيجار.
+                </p>
+                <p class="text-slate-300">
+                    يتم خصم <strong class="text-sky-400 font-black">100 ريال</strong> لكل عقد إيجار موثق يتم إصداره.
                 </p>
                 <p class="text-slate-400 text-[10px]">
-                    * لا يتم الخصم عند المعاينة أو مجرد اختيار الشقة، ويتم استرداد الرسوم عند الإلغاء المؤهل.
+                    * يجب توفر رصيد بالمحفظة لظهور شققك للنزلاء واستقبال الحجوزات.
                 </p>
             </div>
         </div>

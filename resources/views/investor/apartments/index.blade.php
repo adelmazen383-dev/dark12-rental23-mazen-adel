@@ -46,9 +46,19 @@
                         </div>
 
                         <div class="absolute bottom-3 left-3">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold {{ $apt->is_active ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white' }}">
-                                {{ $apt->is_active ? 'ظاهرة للنزلاء' : 'معطلة من الإدارة' }}
-                            </span>
+                            @if(!$apt->is_active)
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500 text-white">معطلة من الإدارة</span>
+                            @elseif(!$apt->is_available)
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-500 text-white">غير شاغرة</span>
+                            @elseif(!$investor->isAllowedToDisplayApartments() && !$apt->admin_approved_override)
+                                @if(!$investor->wallet || $investor->wallet->balance <= 0)
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500 text-slate-950">غير معروضة (المحفظة غير مشحونة)</span>
+                                @else
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500 text-white">غير معروضة</span>
+                                @endif
+                            @else
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500 text-white">ظاهرة للنزلاء</span>
+                            @endif
                         </div>
                     </div>
 

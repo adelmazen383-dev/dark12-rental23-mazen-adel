@@ -87,10 +87,7 @@
             </div>
         </div>
 
-        <!-- Support Actions -->
-        @php
-            $adminPhone = \App\Models\Setting::getValue('admin_whatsapp', '0500000000');
-        @endphp
+        <!-- Actions -->
         <div class="mt-8 flex flex-col sm:flex-row gap-3">
             <form action="{{ route('client.chat.start', $booking->apartment_id) }}" method="POST" class="flex-1">
                 @csrf
@@ -104,14 +101,9 @@
                 </button>
             </form>
 
-            <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $adminPhone) }}?text={{ urlencode('مرحباً، أود الاستفسار عن حجزي رقم: ' . $booking->reference_number) }}" target="_blank"
-                class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-sm">
-                <i class="fa-brands fa-whatsapp text-base"></i>
-                <span>تواصل مع الاستقبال عبر واتساب</span>
-            </a>
-
-            <a href="{{ route('client.apartments.index') }}" class="py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs transition text-center">
-                الرئيسية
+            <a href="{{ route('client.apartments.index') }}" class="py-3 px-6 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs transition text-center flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-house text-sm"></i>
+                <span>الرئيسية</span>
             </a>
         </div>
     </div>

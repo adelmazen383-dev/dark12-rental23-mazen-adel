@@ -51,7 +51,7 @@ class BookingController extends Controller
         $investor = $booking->apartment->investor;
         $wallet = $investor->wallet;
 
-        $bookingFee = (float) Setting::getValue('booking_fee', 50);
+        $bookingFee = (float) Setting::getValue('booking_fee', 150);
 
         // Deduct booking fee from investor's wallet
         if ($wallet && $bookingFee > 0) {

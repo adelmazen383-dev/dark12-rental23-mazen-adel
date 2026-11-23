@@ -229,50 +229,7 @@
     </div>
 
     <!-- =========================================================================
-         SECTION 3: FILTER & SEARCH BAR
-         ========================================================================= -->
-    <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/80">
-        <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
-            <h3 class="font-black text-xs sm:text-sm text-slate-800 flex items-center gap-2">
-                <i class="fa-solid fa-sliders text-amber-500"></i>
-                <span>تصفية واختيار الشقة المناسبة:</span>
-            </h3>
-            @if(request()->hasAny(['floor', 'apartment_number', 'rooms']))
-                <a href="{{ route('client.apartments.index') }}" class="text-xs font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1 transition">
-                    <i class="fa-solid fa-rotate-left"></i>
-                    <span>إلغاء التصفية</span>
-                </a>
-            @endif
-        </div>
-
-        <form action="{{ route('client.apartments.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            <div>
-                <label class="block font-bold text-slate-600 mb-1">رقم الشقة:</label>
-                <input type="text" name="apartment_number" value="{{ request('apartment_number') }}" placeholder="ابحث برقم الشقة (مثال: 101)..."
-                    class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:bg-white focus:outline-none transition">
-            </div>
-
-            <div>
-                <label class="block font-bold text-slate-600 mb-1">عدد الغرف:</label>
-                <select name="rooms" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:bg-white focus:outline-none transition">
-                    <option value="">أي عدد غرف</option>
-                    <option value="1" {{ request('rooms') == 1 ? 'selected' : '' }}>غرفة واحدة فاخرة</option>
-                    <option value="2" {{ request('rooms') == 2 ? 'selected' : '' }}>غرفتان فأكثر (عائلي)</option>
-                    <option value="3" {{ request('rooms') == 3 ? 'selected' : '' }}>3 غرف فأكثر (كبير)</option>
-                </select>
-            </div>
-
-            <div class="flex items-end gap-2">
-                <button type="submit" class="w-full py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl transition flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 active:scale-95">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <span>بحث وتصفية</span>
-                </button>
-            </div>
-        </form>
-    </div>
-
-    <!-- =========================================================================
-         SECTION 4: APARTMENTS SHOWCASE GRID (عالي الأنيميشن والحركة)
+         SECTION 3: APARTMENTS SHOWCASE GRID (عالي الأنيميشن والحركة)
          ========================================================================= -->
     @if($apartments->isEmpty())
         <div class="text-center py-16 bg-white rounded-3xl border border-slate-200 p-8 shadow-sm space-y-4">
@@ -280,15 +237,10 @@
                 <i class="fa-solid fa-door-closed"></i>
             </div>
             <div class="space-y-1">
-                <h3 class="text-base sm:text-lg font-black text-slate-900">لا توجد شقق متاحة حالياً وفق هذه المعايير</h3>
+                <h3 class="text-base sm:text-lg font-black text-slate-900">لا توجد شقق متاحة حالياً للحجز</h3>
                 <p class="text-xs text-slate-500 max-w-sm mx-auto">
-                    يرجى تعديل معايير البحث لتصفح جميع الشقق والخيارات المتاحة في البرج.
+                    لا تتوفر وحدات شاغرة في الوقت الحالي، يرجى معاودة الزيارة لاحقاً.
                 </p>
-            </div>
-            <div class="flex items-center justify-center gap-3 pt-2">
-                <a href="{{ route('client.apartments.index') }}" class="text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 px-4 py-2 rounded-xl transition">
-                    عرض جميع الشقق
-                </a>
             </div>
         </div>
     @else

@@ -35,7 +35,7 @@ class ContractController extends Controller
     public function create()
     {
         $investors = Investor::where('status', 'approved')->with('apartments')->get();
-        $serviceFee = (float) Setting::getValue('contract_service_fee', 150);
+        $serviceFee = (float) Setting::getValue('contract_service_fee', 100);
 
         return view('admin.contracts.create', compact('investors', 'serviceFee'));
     }

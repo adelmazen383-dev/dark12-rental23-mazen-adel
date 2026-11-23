@@ -25,7 +25,7 @@ class WalletService
 
     public function deductBookingFee(Wallet $wallet, Booking $booking, ?int $userId = null): ?WalletTransaction
     {
-        $fee = (float) Setting::getValue('booking_fee', 0);
+        $fee = (float) Setting::getValue('booking_fee', 150);
         if ($fee <= 0) return null;
 
         return DB::transaction(function () use ($wallet, $fee, $booking, $userId) {

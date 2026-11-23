@@ -15,8 +15,8 @@ class DatabaseSeeder extends Seeder
         $settings = [
             ['key' => 'site_name', 'value' => 'أجنحة البرج الفندقية', 'description' => 'اسم المنصة'],
             ['key' => 'monthly_subscription', 'value' => '500', 'description' => 'قيمة الاشتراك الشهري بالريال'],
-            ['key' => 'booking_fee', 'value' => '50', 'description' => 'رسوم المنصة لكل حجز مؤكد بالريال'],
-            ['key' => 'contract_service_fee', 'value' => '150', 'description' => 'رسوم إصدار وتوثيق عقد إيجار رسمي بالريال'],
+            ['key' => 'booking_fee', 'value' => '150', 'description' => 'رسوم المنصة لكل تأكيد حجز إيجار بالريال'],
+            ['key' => 'contract_service_fee', 'value' => '100', 'description' => 'رسوم إصدار وتوثيق عقد إيجار رسمي بالريال'],
             ['key' => 'invoice_service_fee', 'value' => '50', 'description' => 'رسوم إصدار فاتورة ضريبية رسمية بالريال'],
             ['key' => 'admin_whatsapp', 'value' => '0555555555', 'description' => 'رقم واتساب الإدارة'],
             ['key' => 'low_balance_threshold', 'value' => '100', 'description' => 'حد التنبيه لانخفاض الرصيد'],

@@ -63,7 +63,11 @@ class ApartmentController extends Controller
             } elseif (!$apartment->is_available || !$apartment->is_active) {
                 $reason = 'هذه الشقة غير متاحة حالياً.';
             } elseif ($apartment->investor && !$apartment->investor->isAllowedToDisplayApartments()) {
-                $reason = 'هذه الشقة غير متاحة حالياً بانتظار اعتماد الإدارة أو تجديد الاشتراك.';
+                if ($apartment->investor->wallet && $apartment->investor->wallet->balance <= 0) {
+                    $reason = 'هذه الشقة غير متاحة حالياً بانتظار شحن محفظة المستثمر.';
+                } else {
+                    $reason = 'هذه الشقة غير متاحة حالياً بانتظار اعتماد الإدارة أو تجديد الاشتراك.';
+                }
             }
 
             return redirect()->route('client.apartments.index')

@@ -153,7 +153,7 @@
                                     </span>
                                 @elseif($apt->investor && !$apt->investor->isAllowedToDisplayApartments() && !$apt->admin_approved_override)
                                     <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 inline-flex items-center gap-1">
-                                        <i class="fa-solid fa-triangle-exclamation text-[9px]"></i> مخفية (إيقاف/اشتراك)
+                                        <i class="fa-solid fa-triangle-exclamation text-[9px]"></i> مخفية (المحفظة/الاشتراك)
                                     </span>
                                 @else
                                     <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 inline-flex items-center gap-1">

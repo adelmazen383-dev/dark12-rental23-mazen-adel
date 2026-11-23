@@ -69,7 +69,7 @@ class ReceptionController extends Controller
         }
 
         $allApartments = Apartment::with('investor')->orderBy('apartment_number')->get();
-        $bookingFee = (float) Setting::getValue('booking_fee', 50);
+        $bookingFee = (float) Setting::getValue('booking_fee', 150);
         $penaltyFee = (float) Setting::getValue('unregistered_deal_penalty_fee', 100);
 
         return view('admin.reception.index', compact(
@@ -177,7 +177,7 @@ class ReceptionController extends Controller
         $investor = $apartment->investor;
 
         $totalAmount = $validated['daily_rate'] * $validated['nights_count'];
-        $bookingFee = (float) Setting::getValue('booking_fee', 50);
+        $bookingFee = (float) Setting::getValue('booking_fee', 150);
         $penaltyFee = (float) Setting::getValue('unregistered_deal_penalty_fee', 100);
         $totalDeduction = $bookingFee + $penaltyFee;
 

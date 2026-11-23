@@ -37,6 +37,24 @@
                 <p class="mt-1 leading-relaxed">{{ $investor->suspension_reason ?: 'يرجى مراجعة إدارة البرج لاستكمال متطلبات الترخيص أو تجديد الاشتراك.' }}</p>
             </div>
         </div>
+    @elseif($investor->status === 'approved' && (!$wallet || $wallet->balance <= 0) && !$investor->admin_approved_override)
+        <div class="p-4 sm:p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 text-xs flex items-start justify-between gap-4 shadow-sm">
+            <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center text-base flex-shrink-0 shadow-sm mt-0.5">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div>
+                    <h4 class="font-black text-sm text-amber-950">تنبيه ظهور الشقق للنزلاء: محفظتك بحاجة للشحن</h4>
+                    <p class="mt-1 leading-relaxed text-amber-900 font-medium">
+                        حسابك معتمد بنجاح، لكن شققك غير معروضة للنزلاء حالياً حتى تقوم بشحن محفظتك في الموقع. بمجرد شحن الرصيد ستظهر شققك فوراً وتبدأ في استقبال الحجوزات (المنصة تخصم 150 ريال لكل تأكيد حجز إيجار، و 100 ريال لكل عقد إيجار).
+                    </p>
+                </div>
+            </div>
+            <a href="{{ route('investor.wallet.index') }}" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition shadow-sm flex items-center gap-1.5 flex-shrink-0 self-center sm:self-auto">
+                <i class="fa-solid fa-bolt"></i>
+                <span>شحن المحفظة الآن</span>
+            </a>
+        </div>
     @endif
 
     <!-- Cards Grid -->

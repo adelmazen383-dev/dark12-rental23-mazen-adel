@@ -15,7 +15,7 @@ class WalletController extends Controller
 
         $transactions = $wallet->transactions()->paginate(15);
         $bankAccounts = PlatformBankAccount::active()->get();
-        $bookingFee = Setting::getValue('booking_fee', 50);
+        $bookingFee = Setting::getValue('booking_fee', 150);
         $lowThreshold = Setting::getValue('low_balance_threshold', 100);
 
         return view('investor.wallet.index', compact('wallet', 'transactions', 'bankAccounts', 'bookingFee', 'lowThreshold'));

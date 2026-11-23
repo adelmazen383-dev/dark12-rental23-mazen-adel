@@ -13,7 +13,7 @@ class ContractController extends Controller
     {
         $investor = auth()->user()->investor;
         $contracts = $investor->rentalContracts()->with(['apartment', 'issuer'])->latest()->paginate(15);
-        $serviceFee = (float) Setting::getValue('contract_service_fee', 150);
+        $serviceFee = (float) Setting::getValue('contract_service_fee', 100);
 
         return view('investor.contracts.index', compact('investor', 'contracts', 'serviceFee'));
     }
@@ -22,7 +22,7 @@ class ContractController extends Controller
     {
         $investor = auth()->user()->investor;
         $apartments = $investor->apartments;
-        $serviceFee = (float) Setting::getValue('contract_service_fee', 150);
+        $serviceFee = (float) Setting::getValue('contract_service_fee', 100);
         $wallet = $investor->wallet;
 
         return view('investor.contracts.create', compact('investor', 'apartments', 'serviceFee', 'wallet'));
@@ -31,7 +31,7 @@ class ContractController extends Controller
     public function store(Request $request, WalletService $walletService)
     {
         $investor = auth()->user()->investor;
-        $serviceFee = (float) Setting::getValue('contract_service_fee', 150);
+        $serviceFee = (float) Setting::getValue('contract_service_fee', 100);
 
         $validated = $request->validate([
             'apartment_id' => 'nullable|exists:apartments,id',

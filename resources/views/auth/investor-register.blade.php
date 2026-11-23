@@ -30,6 +30,66 @@
             </div>
         </div>
 
+        <!-- مهم جداً: إرشادات وسياسة تفعيل الحساب والمحفظة للمستثمر -->
+        <div class="mb-8 rounded-2xl bg-gradient-to-br from-amber-50 via-amber-50/60 to-white border-2 border-amber-300 p-5 sm:p-6 shadow-sm">
+            <div class="flex items-start gap-3.5">
+                <div class="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center text-lg flex-shrink-0 shadow-md">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                </div>
+                <div class="space-y-3 flex-1">
+                    <div>
+                        <h3 class="font-black text-sm sm:text-base text-amber-950 flex items-center gap-2">
+                            <span>ملاحظات وإرشادات هامة للمستثمر قبل التسجيل:</span>
+                        </h3>
+                        <p class="text-[11px] sm:text-xs text-amber-800 font-semibold mt-0.5">
+                            يرجى الاطلاع على آلية تفعيل الشقق ورسوم المعاملات المالية بالمنصة:
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                        <!-- البند 1: شحن المحفظة لظهور الشقق -->
+                        <div class="bg-white/95 rounded-xl p-3.5 border border-amber-200/90 shadow-2xs space-y-1.5">
+                            <div class="flex items-center gap-2 text-amber-900 font-bold text-xs">
+                                <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs flex-shrink-0">
+                                    <i class="fa-solid fa-wallet"></i>
+                                </span>
+                                <span>تفعيل ظهور الشقق</span>
+                            </div>
+                            <p class="text-[11px] text-slate-700 leading-relaxed font-medium">
+                                بمجرد مراجعة واعتماد حسابك من الإدارة، <strong class="text-amber-950 font-black">يجب شحن محفظتك في الموقع</strong> حتى تظهر شققك للعملاء وتبدأ في استقبال الحجوزات.
+                            </p>
+                        </div>
+
+                        <!-- البند 2: خصم 150 لكل تأكيد حجز -->
+                        <div class="bg-white/95 rounded-xl p-3.5 border border-amber-200/90 shadow-2xs space-y-1.5">
+                            <div class="flex items-center gap-2 text-amber-900 font-bold text-xs">
+                                <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs flex-shrink-0">
+                                    <i class="fa-solid fa-calendar-check"></i>
+                                </span>
+                                <span>خصم الحجوزات (الإيجار)</span>
+                            </div>
+                            <p class="text-[11px] text-slate-700 leading-relaxed font-medium">
+                                تخصم المنصة رسماً ثابتاً قدره <strong class="text-emerald-800 font-black text-xs">150 ريال</strong> من محفظتك لكل تأكيد حجز إيجار ناجح.
+                            </p>
+                        </div>
+
+                        <!-- البند 3: خصم 100 لكل عقد -->
+                        <div class="bg-white/95 rounded-xl p-3.5 border border-amber-200/90 shadow-2xs space-y-1.5">
+                            <div class="flex items-center gap-2 text-amber-900 font-bold text-xs">
+                                <span class="w-6 h-6 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-xs flex-shrink-0">
+                                    <i class="fa-solid fa-file-contract"></i>
+                                </span>
+                                <span>خصم توثيق العقود</span>
+                            </div>
+                            <p class="text-[11px] text-slate-700 leading-relaxed font-medium">
+                                تخصم المنصة رسماً قدره <strong class="text-sky-800 font-black text-xs">100 ريال</strong> من محفظتك لكل عقد إيجار موثق يتم إصداره عبر المنصة.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         @if($errors->any())
             <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm shadow-sm">
                 <div class="font-bold mb-1 flex items-center gap-2">
@@ -261,7 +321,7 @@
                     <span>إرسال طلب التسجيل للاعتماد</span>
                 </button>
                 <p class="text-[11px] text-gray-500 text-center mt-2">
-                    بإرسال الطلب، أنت توافق على سياسات المنصة وشروط تأجير الوحدات السكنية بالبرج.
+                    بإرسال الطلب، أنت توافق على سياسات المنصة وشروط التشغيل (خصم 150 ريال لكل تأكيد حجز، 100 ريال لكل عقد، ولزوم شحن المحفظة لظهور الشقق بعد الاعتماد).
                 </p>
 
                 <div class="mt-6 pt-5 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">

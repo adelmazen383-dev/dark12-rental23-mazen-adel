@@ -21,6 +21,9 @@ class TowerPlatformTest extends TestCase
         $response = $this->get('/');
         $response->assertStatus(200);
         $response->assertSee('منصة دَارِك');
+        // Search filter has been removed per client request
+        $response->assertDontSee('تصفية واختيار الشقة المناسبة');
+        $response->assertDontSee('بحث وتصفية');
     }
 
     public function test_client_can_view_apartment_details(): void
@@ -42,6 +45,11 @@ class TowerPlatformTest extends TestCase
         $response = $this->get('/investor/register');
         $response->assertStatus(200);
         $response->assertSee('تسجيل مستثمر وشقة جديدة');
+        // Investor notes per client request
+        $response->assertSee('ملاحظات وإرشادات هامة للمستثمر قبل التسجيل');
+        $response->assertSee('يجب شحن محفظتك في الموقع');
+        $response->assertSee('150 ريال');
+        $response->assertSee('100 ريال');
     }
 
     public function test_admin_can_access_dashboard(): void
@@ -112,10 +120,10 @@ class TowerPlatformTest extends TestCase
         // Check contract created and wallet deducted
         $contract = RentalContract::where('tenant_name', 'سعد المنصور')->first();
         $this->assertNotNull($contract);
-        $this->assertEquals(150, $contract->service_fee); // Admin-set fee
+        $this->assertEquals(100, $contract->service_fee); // Admin-set fee (100 SAR)
 
         $investor->wallet->refresh();
-        $this->assertEquals(850, $investor->wallet->balance);
+        $this->assertEquals(900, $investor->wallet->balance);
 
         // Admin can view contract and print it
         $adminResp = $this->actingAs($admin)->get("/admin/contracts/{$contract->id}");
@@ -417,5 +425,68 @@ class TowerPlatformTest extends TestCase
         ]);
         $loginResp->assertRedirect('/investor');
         $this->assertAuthenticatedAs($investorUser);
+    }
+
+    public function test_investor_must_charge_wallet_for_apartments_to_show_to_clients(): void
+    {
+        $apt = Apartment::first();
+        $investor = $apt->investor;
+
+        // Reset any overrides
+        $investor->update(['admin_approved_override' => false]);
+        $apt->update(['admin_approved_override' => false, 'is_available' => true, 'is_active' => true]);
+
+        // When wallet balance is 0, apartment must NOT show to clients
+        $investor->wallet->update(['balance' => 0]);
+        $this->assertFalse($investor->isAllowedToDisplayApartments());
+
+        $resp = $this->get('/');
+        $resp->assertDontSee("شقة {$apt->apartment_number}");
+
+        $showResp = $this->get("/apartments/{$apt->id}");
+        $showResp->assertRedirect('/');
+
+        // Once investor charges wallet (e.g. 500 SAR), apartments appear immediately!
+        $investor->wallet->update(['balance' => 500]);
+        $investor->refresh();
+        $this->assertTrue($investor->isAllowedToDisplayApartments());
+
+        $respCharged = $this->get('/');
+        $respCharged->assertSee("شقة {$apt->apartment_number}");
+    }
+
+    public function test_booking_confirmation_deducts_150_sar_from_investor_wallet(): void
+    {
+        $admin = User::where('role', 'admin')->first();
+        $investorUser = User::where('role', 'investor')->where('email', 'investor@tower.com')->first();
+        $investor = $investorUser->investor;
+        $investor->wallet->update(['balance' => 1000]);
+
+        $apt = Apartment::where('investor_id', $investor->id)->first();
+
+        // Create booking
+        $booking = \App\Models\Booking::create([
+            'apartment_id' => $apt->id,
+            'customer_name' => 'خالد العتيبي',
+            'customer_phone' => '0544332211',
+            'checkin_date' => now()->addDays(5)->toDateString(),
+            'checkout_date' => now()->addDays(8)->toDateString(),
+            'nights_count' => 3,
+            'daily_rate' => 500,
+            'total_amount' => 1500,
+            'status' => 'pending_payment',
+        ]);
+
+        // Confirmation page should NOT show support whatsapp
+        $confResp = $this->get("/booking/{$booking->reference_number}/confirmation");
+        $confResp->assertStatus(200);
+        $confResp->assertDontSee('تواصل مع الاستقبال عبر واتساب');
+
+        // Admin confirms booking -> 150 SAR deducted from investor wallet
+        $confirmResp = $this->actingAs($admin)->post("/admin/bookings/{$booking->id}/confirm");
+        $confirmResp->assertRedirect();
+
+        $investor->wallet->refresh();
+        $this->assertEquals(850, $investor->wallet->balance); // 1000 - 150 = 850
     }
 }

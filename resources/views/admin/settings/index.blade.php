@@ -33,9 +33,9 @@
                     <label class="block text-xs font-bold text-slate-700 mb-1">
                         رسوم المنصة لكل حجز مؤكد (ريال) *
                     </label>
-                    <input type="number" name="booking_fee" value="{{ $settings['booking_fee'] ?? 50 }}" required min="0" step="0.01"
+                    <input type="number" name="booking_fee" value="{{ $settings['booking_fee'] ?? 150 }}" required min="0" step="0.01"
                         class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-amber-500">
-                    <p class="text-[10px] text-slate-400 mt-1">تُخصم تلقائياً من محفظة المستثمر عند اعتماد الحجز فقط (وليس عند المعاينة).</p>
+                    <p class="text-[10px] text-slate-400 mt-1">تُخصم تلقائياً من محفظة المستثمر عند تأكيد حجز الإيجار (150 ريال لكل تأكيد حجز).</p>
                 </div>
 
                 <div>
@@ -43,9 +43,9 @@
                         <i class="fa-solid fa-file-contract text-emerald-600"></i>
                         <span>رسوم إصدار وتوثيق عقد إيجار رسمي (ريال) *</span>
                     </label>
-                    <input type="number" name="contract_service_fee" value="{{ $settings['contract_service_fee'] ?? 150 }}" required min="0" step="0.01"
+                    <input type="number" name="contract_service_fee" value="{{ $settings['contract_service_fee'] ?? 100 }}" required min="0" step="0.01"
                         class="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50/30 text-xs focus:ring-2 focus:ring-emerald-500 font-bold">
-                    <p class="text-[10px] text-slate-400 mt-1">مصدر دخل للمنصة: رسوم خدمة إعداد وتوثيق عقود الإيجار (حتى لو لم يتم التأجير عبر المنصة).</p>
+                    <p class="text-[10px] text-slate-400 mt-1">تُخصم من محفظة المستثمر: رسوم خدمة إعداد وتوثيق عقود الإيجار (100 ريال لكل عقد).</p>
                 </div>
 
                 <div>

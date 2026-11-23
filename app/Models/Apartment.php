@@ -164,6 +164,9 @@ class Apartment extends Model
                           $invQ->where('admin_approved_override', true)
                                ->orWhere(function ($validInv) use ($today) {
                                    $validInv->where('status', 'approved')
+                                            ->whereHas('wallet', function ($w) {
+                                                $w->where('balance', '>', 0);
+                                            })
                                             ->whereHas('subscriptions', function ($sub) use ($today) {
                                                 $sub->where('status', 'active')
                                                     ->whereDate('end_date', '>=', $today);

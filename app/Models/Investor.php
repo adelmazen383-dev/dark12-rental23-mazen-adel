@@ -50,7 +50,7 @@ class Investor extends Model
 
     /**
      * Check if this investor's apartments are allowed to be displayed to clients
-     * Rule: Suspended or subscription expired apartments do NOT show unless Admin approved.
+     * Rule: Suspended, uncharged wallet (balance <= 0), or subscription expired apartments do NOT show unless Admin approved.
      */
     public function isAllowedToDisplayApartments(): bool
     {
@@ -64,7 +64,12 @@ class Investor extends Model
             return false;
         }
 
-        // 3. If subscription is expired or inactive, hide!
+        // 3. Must charge wallet to display apartments
+        if (!$this->wallet || $this->wallet->balance <= 0) {
+            return false;
+        }
+
+        // 4. If subscription is expired or inactive, hide!
         if (!$this->hasActiveSubscription()) {
             return false;
         }
