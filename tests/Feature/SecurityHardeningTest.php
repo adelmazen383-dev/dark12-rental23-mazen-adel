@@ -397,4 +397,119 @@ class SecurityHardeningTest extends TestCase
         $this->assertStringNotContainsString('DB_PASSWORD', $content);
         $this->assertStringNotContainsString('Stack trace', $content);
     }
+
+    // =========================================================
+    // 15. منع ثغرات IDOR – Insecure Direct Object References
+    // =========================================================
+
+    public function test_investor_cannot_create_contract_for_another_investors_apartment(): void
+    {
+        // Create another investor with an apartment
+        $otherUser = User::factory()->create([
+            'email' => 'other_investor@test.com',
+            'role' => 'investor',
+            'is_active' => true,
+        ]);
+        $otherInvestor = Investor::create([
+            'user_id' => $otherUser->id,
+            'full_name' => 'مستثمر آخر',
+            'id_number' => '1099887766',
+            'phone' => '0501112233',
+            'whatsapp' => '0501112233',
+            'bank_name' => 'الراجحي',
+            'bank_account_name' => 'مستثمر آخر',
+            'iban' => 'SA9988000000000000000000',
+            'status' => 'approved',
+        ]);
+        $otherApartment = Apartment::create([
+            'investor_id' => $otherInvestor->id,
+            'apartment_number' => '999',
+            'floor_number' => 9,
+            'daily_price' => 500,
+            'insurance_amount' => 300,
+            'extra_fees' => 0,
+            'checkin_time' => '14:00',
+            'checkout_time' => '12:00',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        // Attempt by $this->investorUser to attach otherInvestor's apartment
+        $response = $this->actingAs($this->investorUser)->post('/investor/contracts', [
+            'apartment_id' => $otherApartment->id,
+            'unit_number' => '999',
+            'floor_number' => 9,
+            'tenant_name' => 'محمد',
+            'tenant_national_id' => '1122334455',
+            'tenant_phone' => '0501234567',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addMonths(1)->toDateString(),
+            'rent_amount' => 5000,
+            'insurance_amount' => 500,
+            'payment_type' => 'monthly',
+        ]);
+
+        $response->assertStatus(403);
+    }
+
+    public function test_investor_cannot_issue_invoice_for_another_investors_contract(): void
+    {
+        $otherUser = User::factory()->create([
+            'email' => 'other_inv2@test.com',
+            'role' => 'investor',
+            'is_active' => true,
+        ]);
+        $otherInvestor = Investor::create([
+            'user_id' => $otherUser->id,
+            'full_name' => 'مستثمر ثان',
+            'id_number' => '1099887755',
+            'phone' => '0501112244',
+            'whatsapp' => '0501112244',
+            'bank_name' => 'الراجحي',
+            'bank_account_name' => 'مستثمر ثان',
+            'iban' => 'SA9988000000000000000001',
+            'status' => 'approved',
+        ]);
+        $otherContract = \App\Models\RentalContract::create([
+            'contract_number' => 'CNT-OTHER-001',
+            'investor_id' => $otherInvestor->id,
+            'unit_number' => '777',
+            'floor_number' => 7,
+            'tenant_name' => 'علي',
+            'tenant_national_id' => '1029384756',
+            'tenant_phone' => '0555555555',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addMonths(6)->toDateString(),
+            'rent_amount' => 12000,
+            'insurance_amount' => 1000,
+            'payment_type' => 'monthly',
+            'status' => 'active',
+        ]);
+
+        // Attempt by $this->investorUser to link otherContract to their invoice
+        $response = $this->actingAs($this->investorUser)->post('/investor/invoices', [
+            'rental_contract_id' => $otherContract->id,
+            'client_name' => 'علي',
+            'issue_date' => now()->toDateString(),
+            'items_desc' => ['إيجار'],
+            'items_qty' => [1],
+            'items_price' => [1000],
+        ]);
+
+        $response->assertStatus(403);
+    }
+
+    // =========================================================
+    // 16. التحقق من صحة مدخلات الإعدادات – Settings Validation
+    // =========================================================
+
+    public function test_admin_settings_rejects_negative_financial_values(): void
+    {
+        $response = $this->actingAs($this->admin)->post('/admin/settings', [
+            'booking_fee' => -150,
+            'contract_service_fee' => -100,
+        ]);
+
+        $response->assertSessionHasErrors(['booking_fee', 'contract_service_fee']);
+    }
 }

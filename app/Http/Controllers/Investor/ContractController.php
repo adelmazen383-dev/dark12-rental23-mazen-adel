@@ -48,6 +48,16 @@ class ContractController extends Controller
             'special_terms' => 'nullable|string',
         ]);
 
+        // Security: Prevent IDOR - ensure apartment belongs to current investor
+        if (!empty($validated['apartment_id'])) {
+            $ownsApartment = Apartment::where('id', $validated['apartment_id'])
+                ->where('investor_id', $investor->id)
+                ->exists();
+            if (!$ownsApartment) {
+                abort(403, 'الشقة المحددة غير صحيحة أو لا تتبع لحسابك.');
+            }
+        }
+
         // Check wallet balance
         $wallet = $investor->wallet;
         if ($serviceFee > 0 && (!$wallet || $wallet->balance < $serviceFee)) {

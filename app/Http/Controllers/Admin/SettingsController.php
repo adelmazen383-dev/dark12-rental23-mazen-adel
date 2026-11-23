@@ -19,6 +19,17 @@ class SettingsController extends Controller
 
     public function update(Request $request)
     {
+        $validated = $request->validate([
+            'site_name' => 'nullable|string|max:100',
+            'monthly_subscription' => 'nullable|numeric|min:0|max:1000000',
+            'booking_fee' => 'nullable|numeric|min:0|max:100000',
+            'contract_service_fee' => 'nullable|numeric|min:0|max:100000',
+            'invoice_service_fee' => 'nullable|numeric|min:0|max:100000',
+            'admin_whatsapp' => 'nullable|string|max:20',
+            'low_balance_threshold' => 'nullable|numeric|min:0|max:100000',
+            'subscription_reminder_days' => 'nullable|integer|min:1|max:365',
+        ]);
+
         $keys = [
             'site_name',
             'monthly_subscription',

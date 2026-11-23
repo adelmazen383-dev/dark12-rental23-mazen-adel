@@ -49,6 +49,16 @@ class InvoiceController extends Controller
             'items_price.*' => 'required|numeric|min:0',
         ]);
 
+        // Security: Prevent IDOR - ensure contract belongs to current investor
+        if (!empty($validated['rental_contract_id'])) {
+            $ownsContract = RentalContract::where('id', $validated['rental_contract_id'])
+                ->where('investor_id', $investor->id)
+                ->exists();
+            if (!$ownsContract) {
+                abort(403, 'عقد الإيجار المحدد غير صالح أو لا يتبع لحسابك.');
+            }
+        }
+
         $wallet = $investor->wallet;
         if ($serviceFee > 0 && (!$wallet || $wallet->balance < $serviceFee)) {
             return back()->withInput()->with('error', "عذراً، رصيد محفظتك الحالي (" . number_format($wallet?->balance ?? 0, 2) . " ر.س) لا يكفي لسداد رسوم إصدار الفاتورة ({$serviceFee} ر.س). يرجى شحن المحفظة أولاً.");
