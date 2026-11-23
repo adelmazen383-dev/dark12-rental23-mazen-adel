@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 
 class LoginController extends Controller
 {
@@ -35,16 +38,35 @@ class LoginController extends Controller
     {
         $credentials = $request->validate([
             'email' => 'required|email',
-            'password' => 'required',
+            'password' => 'required|string',
         ], [
             'email.required' => 'البريد الإلكتروني مطلوب',
             'email.email' => 'صيغة البريد الإلكتروني غير صحيحة',
             'password.required' => 'كلمة المرور مطلوبة',
         ]);
 
+        // Security: Rate limiting key (per email + IP)
+        $throttleKey = Str::transliterate(Str::lower($request->input('email')) . '|' . $request->ip());
+
+        // Max 5 attempts per 60 seconds
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            AuditService::log('security_brute_force_blocked', null, null, [
+                'email' => $request->input('email'),
+                'ip' => $request->ip(),
+                'lockout_seconds' => $seconds,
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            return back()->withErrors([
+                'email' => "لقد تجاوزت عدد محاولات الدخول المسموح بها لأسباب أمنية. يرجى الانتظار {$seconds} ثانية والمحاولة مجدداً.",
+            ])->onlyInput('email');
+        }
+
         $remember = $request->boolean('remember');
 
         if (Auth::attempt($credentials, $remember)) {
+            RateLimiter::clear($throttleKey);
             $request->session()->regenerate();
             $user = Auth::user();
 
@@ -53,15 +75,22 @@ class LoginController extends Controller
                 return back()->withErrors(['email' => 'تم تعطيل هذا الحساب. يرجى التواصل مع الإدارة.']);
             }
 
+            // Log successful login
+            AuditService::log('user_login_success', $user, null, [
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
             // If "remember me" ticked, store long-lived cookies (1 year) for Vercel serverless compat
             if ($remember) {
                 // Generate & store a remember token in DB
-                $token = \Illuminate\Support\Str::random(60);
+                $token = Str::random(60);
                 $user->forceFill(['remember_token' => $token])->save();
 
                 $minutesInYear = 525600;
-                Cookie::queue('dark_remember_email', $user->email, $minutesInYear, '/', null, true, true, false, 'None');
-                Cookie::queue('dark_remember_token', $token, $minutesInYear, '/', null, true, true, false, 'None');
+                $isSecure = $request->secure() || config('app.env') === 'production';
+                Cookie::queue('dark_remember_email', $user->email, $minutesInYear, '/', null, $isSecure, true, false, 'Lax');
+                Cookie::queue('dark_remember_token', $token, $minutesInYear, '/', null, $isSecure, true, false, 'Lax');
             }
 
             if ($user->isAdmin()) {
@@ -78,6 +107,16 @@ class LoginController extends Controller
 
             return redirect('/');
         }
+
+        // Record failed attempt
+        RateLimiter::hit($throttleKey, 60);
+
+        AuditService::log('security_failed_login', null, null, [
+            'attempted_email' => $request->input('email'),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'attempts_left' => RateLimiter::retriesLeft($throttleKey, 5),
+        ]);
 
         return back()->withErrors([
             'email' => 'بيانات الاعتماد المدخلة غير متطابقة مع سجلاتنا.',

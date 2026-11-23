@@ -12,7 +12,7 @@ class WebPushService
 {
     public static function getPublicKey(): string
     {
-        return Setting::getValue(
+        return env('VAPID_PUBLIC_KEY') ?: Setting::getValue(
             'vapid_public_key',
             'BI3Jn8jTTDzGD6KxXYSQto7xKD2Aw9HZW1BUTJvvUVyUvoDxmRO6U9QshSo1_OFvjJAD_EF2dcdv85K80B8bq1U'
         );
@@ -20,7 +20,7 @@ class WebPushService
 
     public static function getPrivateKey(): string
     {
-        return Setting::getValue(
+        return env('VAPID_PRIVATE_KEY') ?: Setting::getValue(
             'vapid_private_key',
             'SsMiYjafV9nyjHxHn38PLrVUFgb0fN-gakoTTQ-8Otc'
         );

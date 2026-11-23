@@ -56,26 +56,26 @@ Route::get('/manifest.json', function () {
 });
 Route::get('/apartments/{apartment}', [ClientApartmentController::class, 'show'])->name('client.apartments.show');
 
-// Booking routes
-Route::post('/apartments/{apartment}/book', [ClientBookingController::class, 'store'])->name('client.booking.store');
+// Booking routes (protected with rate limiting)
+Route::post('/apartments/{apartment}/book', [ClientBookingController::class, 'store'])->name('client.booking.store')->middleware('throttle:10,1');
 Route::get('/booking/{booking:reference_number}', [ClientBookingController::class, 'show'])->name('client.booking.show');
 Route::get('/booking/{booking:reference_number}/payment', [ClientBookingController::class, 'payment'])->name('client.booking.payment');
-Route::post('/booking/{booking:reference_number}/upload-receipt', [ClientBookingController::class, 'uploadReceipt'])->name('client.booking.upload-receipt');
+Route::post('/booking/{booking:reference_number}/upload-receipt', [ClientBookingController::class, 'uploadReceipt'])->name('client.booking.upload-receipt')->middleware('throttle:5,1');
 Route::get('/booking/{booking:reference_number}/confirmation', [ClientBookingController::class, 'confirmation'])->name('client.booking.confirmation');
 
 // Inspection routes
-Route::post('/apartments/{apartment}/inspect', [InspectionController::class, 'store'])->name('client.inspection.store');
+Route::post('/apartments/{apartment}/inspect', [InspectionController::class, 'store'])->name('client.inspection.store')->middleware('throttle:10,1');
 
 // Client Chat routes
 Route::get('/my-chats', [ClientChatController::class, 'index'])->name('client.chat.index');
-Route::post('/my-chats/lookup', [ClientChatController::class, 'lookup'])->name('client.chat.lookup');
-Route::post('/apartments/{apartment}/chat/start', [ClientChatController::class, 'start'])->name('client.chat.start');
+Route::post('/my-chats/lookup', [ClientChatController::class, 'lookup'])->name('client.chat.lookup')->middleware('throttle:10,1');
+Route::post('/apartments/{apartment}/chat/start', [ClientChatController::class, 'start'])->name('client.chat.start')->middleware('throttle:10,1');
 Route::get('/chat/{token}', [ClientChatController::class, 'show'])->name('client.chat.show');
-Route::post('/chat/{token}/send', [ClientChatController::class, 'sendMessage'])->name('client.chat.send');
+Route::post('/chat/{token}/send', [ClientChatController::class, 'sendMessage'])->name('client.chat.send')->middleware('throttle:30,1');
 Route::get('/chat/{token}/messages', [ClientChatController::class, 'getMessages'])->name('client.chat.messages');
-Route::put('/chat/{token}/messages/{message}', [ClientChatController::class, 'updateMessage'])->name('client.chat.messages.update');
-Route::delete('/chat/{token}/messages/{message}', [ClientChatController::class, 'deleteMessage'])->name('client.chat.messages.delete');
-Route::post('/chat/{token}/survey', [ClientChatController::class, 'submitSurvey'])->name('client.chat.survey');
+Route::put('/chat/{token}/messages/{message}', [ClientChatController::class, 'updateMessage'])->name('client.chat.messages.update')->middleware('throttle:30,1');
+Route::delete('/chat/{token}/messages/{message}', [ClientChatController::class, 'deleteMessage'])->name('client.chat.messages.delete')->middleware('throttle:30,1');
+Route::post('/chat/{token}/survey', [ClientChatController::class, 'submitSurvey'])->name('client.chat.survey')->middleware('throttle:10,1');
 
 /*
 |--------------------------------------------------------------------------
@@ -227,23 +227,66 @@ Route::prefix('investor')->name('investor.')->middleware(['auth', 'investor'])->
     Route::get('subscription', [SubscriptionController::class, 'index'])->name('subscription.index');
 });
 
-// Storage route for serverless environments (handles both uploaded files and persistent SVG fallbacks)
+// Secure Storage route for serverless environments (handles uploaded files and persistent SVG fallbacks)
 Route::get('/storage/{path}', function ($path) {
+    // 1. Strict Path Traversal and Null Byte Defense
+    if (str_contains($path, '..') || str_contains($path, "\0") || str_starts_with($path, '/') || str_starts_with($path, '\\')) {
+        \App\Services\AuditService::log('security_path_traversal_blocked', null, null, [
+            'attempted_path' => $path,
+            'ip' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+        abort(403, 'مسار غير مصرح به.');
+    }
+
+    // 2. Block sensitive file extensions from being served directly
+    $forbiddenExtensions = ['php', 'phtml', 'phar', 'env', 'sqlite', 'db', 'key', 'sql', 'sh', 'bat', 'cmd', 'git', 'json', 'yml', 'yaml', 'lock', 'config', 'log', 'htaccess', 'htpasswd', 'bak', 'backup', 'tmp', 'swp'];
+    $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+    if (in_array($extension, $forbiddenExtensions, true)) {
+        \App\Services\AuditService::log('security_forbidden_extension_blocked', null, null, [
+            'attempted_path' => $path,
+            'ip' => request()->ip(),
+        ]);
+        abort(403, 'امتداد الملف محظور.');
+    }
+
     $candidates = [
         storage_path('app/public/' . $path),
         '/tmp/storage/app/public/' . $path,
         base_path('storage/app/public/' . $path),
         public_path('storage/' . $path),
-        public_path($path),
+    ];
+
+    $allowedPrefixes = [
+        storage_path('app/public'),
+        base_path('storage/app/public'),
+        public_path('storage'),
+        '/tmp/storage/app/public',
     ];
 
     foreach ($candidates as $file) {
         if (file_exists($file) && is_file($file)) {
-            $mime = @mime_content_type($file) ?: 'application/octet-stream';
-            return response()->file($file, [
-                'Content-Type' => $mime,
-                'Cache-Control' => 'public, max-age=86400',
-            ]);
+            $realFile = realpath($file);
+            if ($realFile) {
+                // Ensure the canonical path is strictly inside allowed storage directories
+                $isPermitted = false;
+                foreach ($allowedPrefixes as $prefix) {
+                    $realPrefix = realpath($prefix) ?: $prefix;
+                    if (str_starts_with($realFile, $realPrefix)) {
+                        $isPermitted = true;
+                        break;
+                    }
+                }
+
+                if ($isPermitted) {
+                    $mime = @mime_content_type($realFile) ?: 'application/octet-stream';
+                    return response()->file($realFile, [
+                        'Content-Type' => $mime,
+                        'Cache-Control' => 'public, max-age=86400',
+                        'X-Content-Type-Options' => 'nosniff',
+                    ]);
+                }
+            }
         }
     }
 

@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 
 class ForgotPasswordController extends Controller
 {
@@ -36,9 +38,25 @@ class ForgotPasswordController extends Controller
             'email.exists' => 'البريد الإلكتروني المدخل غير مسجل لدينا في النظام.',
         ]);
 
+        // Security: Rate limiting (max 3 OTP requests per 10 minutes)
+        $throttleKey = 'send-otp:' . Str::transliterate(Str::lower($validated['email']) . '|' . $request->ip());
+        if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            AuditService::log('security_otp_rate_limited', null, null, [
+                'email' => $validated['email'],
+                'ip' => $request->ip(),
+                'lockout_seconds' => $seconds,
+            ]);
+
+            return back()->withInput()->withErrors([
+                'email' => "تم تجاوز الحد الأقصى لمحاولات إرسال رمز التحقق. يرجى الانتظار {$seconds} ثانية قبل المحاولة مرة أخرى.",
+            ]);
+        }
+        RateLimiter::hit($throttleKey, 600);
+
         $user = User::where('email', $validated['email'])->first();
 
-        // Generate 6-digit numeric OTP
+        // Generate cryptographically secure 6-digit numeric OTP
         $otp = (string) random_int(100000, 999999);
 
         // Store OTP in password_reset_tokens table
@@ -63,7 +81,7 @@ class ForgotPasswordController extends Controller
 
         // Provide friendly feedback
         $msg = "تم إرسال رمز التحقق (OTP) المكون من 6 أرقام إلى بريدك الإلكتروني ({$user->email}).";
-        if (!$mailSent || config('mail.default') === 'log' || config('app.debug')) {
+        if (app()->environment('testing') || (config('app.debug') && config('mail.default') === 'log')) {
             session()->flash('demo_otp', $otp);
         }
 
@@ -105,11 +123,28 @@ class ForgotPasswordController extends Controller
             'password.confirmed' => 'تأكيد كلمة المرور غير متطابق.',
         ]);
 
+        // Security: Rate limiting OTP verification attempts (max 5 attempts per 10 minutes)
+        $throttleKey = 'verify-otp:' . Str::transliterate(Str::lower($validated['email']) . '|' . $request->ip());
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            AuditService::log('security_brute_force_blocked', null, null, [
+                'type' => 'otp_verify_lockout',
+                'email' => $validated['email'],
+                'ip' => $request->ip(),
+                'lockout_seconds' => $seconds,
+            ]);
+
+            return back()->withInput()->withErrors([
+                'otp' => "تم حظر إدخال رمز التحقق مؤقتاً لتكرار المحاولات الخاطئة. يرجى الانتظار {$seconds} ثانية والمحاولة مجدداً.",
+            ]);
+        }
+
         $record = DB::table('password_reset_tokens')
             ->where('email', $validated['email'])
             ->first();
 
         if (!$record) {
+            RateLimiter::hit($throttleKey, 600);
             return back()->withInput()->withErrors([
                 'otp' => 'لم يتم العثور على رمز تحقق نشط لهذا البريد. يرجى طلب رمز جديد.',
             ]);
@@ -122,19 +157,29 @@ class ForgotPasswordController extends Controller
             ]);
         }
 
-        // Check matching code
-        if (trim((string)$record->token) !== trim((string)$validated['otp'])) {
+        // Timing-attack safe comparison
+        if (!hash_equals(trim((string)$record->token), trim((string)$validated['otp']))) {
+            RateLimiter::hit($throttleKey, 600);
+            AuditService::log('security_invalid_otp_attempt', null, null, [
+                'email' => $validated['email'],
+                'ip' => $request->ip(),
+                'attempts_left' => RateLimiter::retriesLeft($throttleKey, 5),
+            ]);
+
             return back()->withInput()->withErrors([
                 'otp' => 'رمز التحقق (OTP) غير صحيح. يرجى مراجعة بريدك الإلكتروني وإدخال الرمز الصحيح.',
             ]);
         }
 
-        // Update User Password
+        // Clear throttle on success
+        RateLimiter::clear($throttleKey);
+
+        // Update User Password securely
         $user = User::where('email', $validated['email'])->first();
         $user->password = Hash::make($validated['password']);
         $user->save();
 
-        // Delete used token
+        // Delete used token immediately
         DB::table('password_reset_tokens')->where('email', $validated['email'])->delete();
         session()->forget('reset_email');
 

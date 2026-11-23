@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 
 class InvestorRegisterController extends Controller
 {
@@ -27,6 +28,16 @@ class InvestorRegisterController extends Controller
 
     public function register(Request $request)
     {
+        // Security: Rate limiting per IP to prevent spam signups
+        $throttleKey = 'register-investor:' . $request->ip();
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            return back()->withInput()->withErrors([
+                'email' => "تم تجاوز الحد المسموح به لمحاولات التسجيل لأسباب أمنية. يرجى المحاولة بعد {$seconds} ثانية.",
+            ]);
+        }
+        RateLimiter::hit($throttleKey, 3600);
+
         $validated = $request->validate([
             // Account info
             'name' => 'required|string|max:255',

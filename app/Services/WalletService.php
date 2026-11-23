@@ -8,16 +8,29 @@ class WalletService
 {
     public function deposit(Wallet $wallet, float $amount, string $description, ?int $userId = null): WalletTransaction
     {
+        if ($amount == 0.0) {
+            throw new \InvalidArgumentException('مبلغ العملية يجب أن يكون أكبر من صفر.');
+        }
+
         return DB::transaction(function () use ($wallet, $amount, $description, $userId) {
-            $wallet->increment('balance', $amount);
-            $wallet->refresh();
+            // Lock wallet row for update to prevent concurrent race conditions
+            $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
+
+            // If deducting via negative amount, prevent negative balance
+            if ($amount < 0 && $lockedWallet->balance < abs($amount)) {
+                throw new \Exception('رصيد المحفظة غير كافٍ لإتمام الخصم.');
+            }
+
+            $lockedWallet->increment('balance', $amount);
+            $lockedWallet->refresh();
+            $wallet->balance = $lockedWallet->balance;
 
             return WalletTransaction::create([
-                'wallet_id' => $wallet->id,
-                'type' => 'deposit',
-                'amount' => $amount,
+                'wallet_id' => $lockedWallet->id,
+                'type' => $amount >= 0 ? 'deposit' : 'deduction',
+                'amount' => abs($amount),
                 'description' => $description,
-                'balance_after' => $wallet->balance,
+                'balance_after' => $lockedWallet->balance,
                 'created_by' => $userId,
             ]);
         });
@@ -29,20 +42,24 @@ class WalletService
         if ($fee <= 0) return null;
 
         return DB::transaction(function () use ($wallet, $fee, $booking, $userId) {
-            if ($wallet->balance < $fee) {
-                throw new \Exception('رصيد المحفظة غير كافي');
+            // Lock wallet row to prevent race conditions
+            $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
+
+            if ($lockedWallet->balance < $fee) {
+                throw new \Exception('رصيد المحفظة غير كافي لسداد رسوم الحجز.');
             }
 
-            $wallet->decrement('balance', $fee);
-            $wallet->refresh();
+            $lockedWallet->decrement('balance', $fee);
+            $lockedWallet->refresh();
+            $wallet->balance = $lockedWallet->balance;
 
             return WalletTransaction::create([
-                'wallet_id' => $wallet->id,
+                'wallet_id' => $lockedWallet->id,
                 'type' => 'deduction',
                 'amount' => $fee,
                 'description' => "رسوم حجز #{$booking->reference_number}",
                 'booking_id' => $booking->id,
-                'balance_after' => $wallet->balance,
+                'balance_after' => $lockedWallet->balance,
                 'created_by' => $userId,
             ]);
         });
@@ -57,17 +74,29 @@ class WalletService
 
         if (!$transaction) return null;
 
+        // Prevent double refunds
+        $alreadyRefunded = WalletTransaction::where('wallet_id', $wallet->id)
+            ->where('booking_id', $booking->id)
+            ->where('type', 'refund')
+            ->exists();
+
+        if ($alreadyRefunded) {
+            throw new \Exception('تم استرداد رسوم هذا الحجز مسبقاً.');
+        }
+
         return DB::transaction(function () use ($wallet, $transaction, $booking, $userId) {
-            $wallet->increment('balance', $transaction->amount);
-            $wallet->refresh();
+            $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
+            $lockedWallet->increment('balance', $transaction->amount);
+            $lockedWallet->refresh();
+            $wallet->balance = $lockedWallet->balance;
 
             return WalletTransaction::create([
-                'wallet_id' => $wallet->id,
+                'wallet_id' => $lockedWallet->id,
                 'type' => 'refund',
                 'amount' => $transaction->amount,
                 'description' => "استرداد رسوم حجز #{$booking->reference_number}",
                 'booking_id' => $booking->id,
-                'balance_after' => $wallet->balance,
+                'balance_after' => $lockedWallet->balance,
                 'created_by' => $userId,
             ]);
         });

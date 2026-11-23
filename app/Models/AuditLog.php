@@ -30,6 +30,15 @@ class AuditLog extends Model
             'reception_checkin' => '🔑 تسجيل دخول نزيل بالاستقبال وتسليم المفتاح',
             'reception_checkout' => 'تسجيل خروج نزيل ومغادرة الشقة',
             'unregistered_deal_recorded' => '🚨 تسجيل صفقة غير معتمدة وفرض غرامة',
+            'user_login_success' => '✅ تسجيل دخول ناجح',
+            'security_failed_login' => '🔒 محاولة تسجيل دخول فاشلة',
+            'security_brute_force_blocked' => '🛡️ حظر محاولات تخمين متكررة (Rate Limit)',
+            'security_unauthorized_admin_access' => '⛔ محاولة وصول غير مصرح لصفحات الإدارة',
+            'security_path_traversal_blocked' => '🚫 محاولة استعراض مسار محظور (Path Traversal)',
+            'security_forbidden_extension_blocked' => '🛑 محاولة طلب ملف بامتداد محظور',
+            'security_otp_rate_limited' => '⚠️ تجاوز حد طلب رموز التحقق OTP',
+            'security_invalid_otp_attempt' => '❌ إدخال رمز تحقق خاطئ (OTP)',
+            'password_reset_via_email_otp' => '🔑 إعادة تعيين كلمة المرور عبر البريد',
             default => str_replace('_', ' ', $this->action),
         };
     }
@@ -37,11 +46,13 @@ class AuditLog extends Model
     public function getActionBadgeColorAttribute(): string
     {
         return match ($this->action) {
-            'investor_approved', 'booking_confirmed', 'reception_checkin' => 'bg-emerald-100 text-emerald-800 border-emerald-300',
+            'investor_approved', 'booking_confirmed', 'reception_checkin', 'user_login_success', 'password_reset_via_email_otp' => 'bg-emerald-100 text-emerald-800 border-emerald-300',
             'wallet_balance_added' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
             'investor_requested_contract' => 'bg-indigo-100 text-indigo-800 border-indigo-300',
-            'bypass_attempt_detected', 'unregistered_deal_recorded', 'investor_suspended' => 'bg-rose-100 text-rose-800 border-rose-300',
-            'receipt_uploaded', 'inspection_requested' => 'bg-amber-100 text-amber-800 border-amber-300',
+            'bypass_attempt_detected', 'unregistered_deal_recorded', 'investor_suspended',
+            'security_failed_login', 'security_brute_force_blocked', 'security_unauthorized_admin_access',
+            'security_path_traversal_blocked', 'security_forbidden_extension_blocked' => 'bg-rose-100 text-rose-800 border-rose-300',
+            'receipt_uploaded', 'inspection_requested', 'security_otp_rate_limited', 'security_invalid_otp_attempt' => 'bg-amber-100 text-amber-800 border-amber-300',
             default => 'bg-slate-100 text-slate-800 border-slate-300',
         };
     }
