@@ -130,42 +130,6 @@
 
     </div>
 
-    <!-- Phone Notifications System Setup Card -->
-    <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-white rounded-3xl p-6 sm:p-7 shadow-lg border border-emerald-500/30">
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div class="space-y-2 max-w-xl">
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                    <i class="fa-solid fa-mobile-screen-button text-emerald-400"></i>
-                    <span>إشعارات الجوال الفورية (حتى والموقع مغلق)</span>
-                </div>
-                <h3 class="text-base sm:text-lg font-black text-white">
-                    تصلك تنبيهات بصوت واهتزاز فور ورود أي رسالة من نزيل أو تأكيد حجز
-                </h3>
-                <p class="text-xs text-slate-300 leading-relaxed">
-                    يعمل النظام بتقنية Web Push الرسمية ليقوم بإشعارك على هاتفك مباشرة حتى بعد إغلاق المتصفح أو قفل شاشة الهاتف.
-                </p>
-                <div class="text-[11px] text-emerald-300/90 bg-white/5 p-3 rounded-2xl border border-white/10 space-y-1">
-                    <p>💡 <strong>لهواتف آيفون (iOS Safari):</strong> اضغط زر المشاركة (Share) في المتصفح &larr; "إضافة إلى الشاشة الرئيسية (Add to Home Screen)" &larr; افتح التطبيق وفعل الإشعارات.</p>
-                    <p>💡 <strong>لهواتف أندرويد (Chrome):</strong> اضغط "تفعيل الإشعارات" أدناه ثم اختر "سماح (Allow)".</p>
-                </div>
-            </div>
-
-            <div class="flex flex-col sm:flex-row lg:flex-col gap-2.5 flex-shrink-0">
-                <button type="button" onclick="enablePhoneNotifications()" 
-                        class="px-5 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-bell"></i>
-                    <span>تفعيل إشعارات الجوال الآن</span>
-                </button>
-
-                <button type="button" onclick="testLivePushNotification()" 
-                        class="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition border border-white/20 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-vial"></i>
-                    <span>اختبار إرسال إشعار للموبايل الآن 🧪</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Recent Bookings Table -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">

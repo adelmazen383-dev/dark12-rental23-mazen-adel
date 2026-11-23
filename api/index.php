@@ -33,13 +33,5 @@ foreach ($tmpDirs as $dir) {
     }
 }
 
-// Copy SQLite database to /tmp if not already there
-$srcDb  = __DIR__ . '/../database/database.sqlite';
-$tmpDb  = '/tmp/database.sqlite';
-if (file_exists($srcDb) && !file_exists($tmpDb)) {
-    @copy($srcDb, $tmpDb);
-    @chmod($tmpDb, 0666);
-}
-
 // Forward to public/index.php
 require __DIR__ . '/../public/index.php';

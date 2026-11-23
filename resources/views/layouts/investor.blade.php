@@ -154,16 +154,6 @@
 
             <!-- Instant Phone Notifications Button & Actions -->
             <div class="flex items-center gap-2 sm:gap-3">
-                <!-- Push Notification Enable / Status Button -->
-                <button id="btnEnableNotifications" onclick="enablePhoneNotifications()" type="button" 
-                        class="text-xs font-bold px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-300 hover:border-emerald-300 transition flex items-center gap-2 shadow-2xs">
-                    <span class="relative flex h-2.5 w-2.5">
-                        <span id="notifPingDot" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                        <span id="notifStaticDot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
-                    </span>
-                    <i class="fa-solid fa-bell text-xs"></i>
-                    <span id="notifStatusText" class="hidden xs:inline">تفعيل إشعارات الجوال</span>
-                </button>
 
                 <!-- Live Unread Chat Pill -->
                 <a href="{{ route('investor.chats.index') }}" class="relative p-2 text-slate-600 hover:text-emerald-600 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 transition" title="المحادثات">
@@ -300,243 +290,38 @@
         </div>
     </div>
 
-    <!-- Phone Notifications & Live Alert Polling Script -->
+    <!-- Live Alert Polling Script — Automatic, No User Setup Required -->
     <script>
-        // Track last seen items to prevent repeating alerts
         let lastSeenMessageId = null;
         let lastSeenBookingId = null;
         let isPolling = false;
+        let chimeUnlocked = false; // Audio unlocked after first user gesture
 
-        // Initialize state on page load
+        // ─── Init ───────────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', function () {
-            checkNotificationPermissionStatus();
-            // Start polling every 6 seconds
+            // Unlock audio on first any-touch so chime plays on mobile
+            document.addEventListener('click', function unlockAudio() {
+                chimeUnlocked = true;
+                document.removeEventListener('click', unlockAudio);
+            }, { once: true });
+
+            // Start polling immediately then every 6 seconds
+            setTimeout(pollUnreadAlerts, 1200);
             setInterval(pollUnreadAlerts, 6000);
-            // Run immediate check
-            setTimeout(pollUnreadAlerts, 1500);
-            // Auto re-register SW subscription if already granted (keeps push alive across Vercel instances)
-            if ('serviceWorker' in navigator && 'PushManager' in window && Notification.permission === 'granted') {
-                autoRenewPushSubscription();
-            }
         });
 
-        async function autoRenewPushSubscription() {
-            try {
-                const reg = await navigator.serviceWorker.register('/sw.js');
-                await navigator.serviceWorker.ready;
-                const vapidRes = await fetch("{{ route('investor.api.vapid-key') }}");
-                const vapidData = await vapidRes.json();
-                if (!vapidData.publicKey) return;
-                let sub = await reg.pushManager.getSubscription();
-                if (!sub) {
-                    sub = await reg.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey)
-                    });
-                }
-                // Always re-send subscription to keep it saved in current DB instance
-                await fetch("{{ route('investor.api.push-subscribe') }}", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    },
-                    body: JSON.stringify(sub)
-                });
-            } catch (e) {
-                // Silently ignore SW errors
-            }
-        }
-
-        function checkNotificationPermissionStatus() {
-            const btn = document.getElementById('btnEnableNotifications');
-            const statusText = document.getElementById('notifStatusText');
-            const pingDot = document.getElementById('notifPingDot');
-            const staticDot = document.getElementById('notifStaticDot');
-
-            if (!('Notification' in window)) {
-                if (btn) btn.style.display = 'none';
-                return;
-            }
-
-            if (Notification.permission === 'granted') {
-                if (statusText) statusText.innerText = 'إشعارات الهاتف مفعلة';
-                if (pingDot) { pingDot.className = 'hidden'; }
-                if (staticDot) { staticDot.className = 'relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500'; }
-                if (btn) {
-                    btn.classList.remove('bg-slate-100', 'text-slate-700', 'border-slate-300');
-                    btn.classList.add('bg-emerald-50', 'text-emerald-700', 'border-emerald-300');
-                }
-            } else if (Notification.permission === 'denied') {
-                if (statusText) statusText.innerText = 'الإشعارات محظورة بالمتصفح';
-                if (pingDot) { pingDot.className = 'hidden'; }
-                if (staticDot) { staticDot.className = 'relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500'; }
-            } else {
-                if (statusText) statusText.innerText = 'تفعيل إشعارات الجوال';
-            }
-        }
-
-        async function enablePhoneNotifications() {
-            if (!('Notification' in window)) {
-                alert('عذراً، هذا المتصفح لا يدعم إشعارات النظام.');
-                return;
-            }
-
-            try {
-                const permission = await Notification.requestPermission();
-                checkNotificationPermissionStatus();
-
-                if (permission === 'granted') {
-                    playNotificationChime();
-                    vibratePhone();
-
-                    // Register Service Worker for background push when site is closed
-                    if ('serviceWorker' in navigator && 'PushManager' in window) {
-                        try {
-                            const reg = await navigator.serviceWorker.register('/sw.js');
-                            await navigator.serviceWorker.ready;
-
-                            const vapidRes = await fetch("{{ route('investor.api.vapid-key') }}");
-                            const vapidData = await vapidRes.json();
-
-                            if (vapidData.publicKey) {
-                                // Check if already subscribed
-                                let sub = await reg.pushManager.getSubscription();
-                                if (!sub) {
-                                    sub = await reg.pushManager.subscribe({
-                                        userVisibleOnly: true,
-                                        applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey)
-                                    });
-                                }
-
-                                // Send to server
-                                await fetch("{{ route('investor.api.push-subscribe') }}", {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                                    },
-                                    body: JSON.stringify(sub)
-                                });
-
-                                // Register periodic sync for background polling (supported browsers)
-                                if ('periodicSync' in reg) {
-                                    try {
-                                        await reg.periodicSync.register('dark-poll-messages', { minInterval: 60 * 1000 });
-                                    } catch (psErr) {
-                                        // periodicSync not granted or not supported — push will handle it
-                                    }
-                                }
-                            }
-                        } catch (swErr) {
-                            console.warn('Service worker push registration note:', swErr);
-                        }
-                    }
-
-                    // Send test notification to verify
-                    new Notification('✅ تم تفعيل إشعارات منصة دارك على هاتفك', {
-                        body: 'ستصلك الآن تنبيهات صوتية واهتزاز فور وصول أي رسالة من نزيل أو تأكيد حجز حتى والموقع مغلق.',
-                        icon: '/client-entry-qr.png',
-                        badge: '/client-entry-qr.png',
-                    });
-
-                    showToastAlert('تم تفعيل إشعارات الهاتف!', 'ستصلك تنبيهات فورية بالصوت والنص عند وصول أي رسالة أو حجز جديد حتى لو كان الموقع مغلقاً.', '#', 'success');
-                }
-            } catch (err) {
-                console.error('Error requesting notification permission:', err);
-            }
-        }
-
-        async function testLivePushNotification() {
-            try {
-                showToastAlert('جاري إرسال إشعار تجريبي...', 'يتم الآن إرسال إشعار خلفية عبر خادم المنصة إلى هاتفك...', '#', 'info');
-                const res = await fetch("{{ route('investor.api.test-push') }}", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    }
-                });
-                const data = await res.json();
-                if (data.success) {
-                    showToastAlert('تم إرسال الإشعار بنجاح!', 'تحقق من شاشة هاتفك الآن أو قائمة التنبيهات.', '#', 'success');
-                } else {
-                    alert(data.message || 'يرجى الضغط على زر تفعيل الإشعارات أولاً والسماح للمتصفح بإرسال التنبيهات.');
-                }
-            } catch (e) {
-                console.error('Test push error:', e);
-                alert('يرجى التأكد من الضغط على "تفعيل إشعارات الجوال" أولاً والسماح بالإشعارات.');
-            }
-        }
-
-        function urlBase64ToUint8Array(base64String) {
-            const padding = '='.repeat((4 - base64String.length % 4) % 4);
-            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
-            const rawData = window.atob(base64);
-            const outputArray = new Uint8Array(rawData.length);
-            for (let i = 0; i < rawData.length; ++i) {
-                outputArray[i] = rawData.charCodeAt(i);
-            }
-            return outputArray;
-        }
-
-        // Web Audio API Synthesized High-Priority Bell Sound (No external audio file needed)
-        function playNotificationChime() {
-            try {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                if (!AudioContext) return;
-                const ctx = new AudioContext();
-
-                // Two-tone bell chime
-                const now = ctx.currentTime;
-                
-                // Tone 1
-                const osc1 = ctx.createOscillator();
-                const gain1 = ctx.createGain();
-                osc1.type = 'sine';
-                osc1.frequency.setValueAtTime(587.33, now); // D5
-                gain1.gain.setValueAtTime(0.3, now);
-                gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-                osc1.connect(gain1);
-                gain1.connect(ctx.destination);
-                osc1.start(now);
-                osc1.stop(now + 0.5);
-
-                // Tone 2 (higher note)
-                const osc2 = ctx.createOscillator();
-                const gain2 = ctx.createGain();
-                osc2.type = 'sine';
-                osc2.frequency.setValueAtTime(880, now + 0.15); // A5
-                gain2.gain.setValueAtTime(0.35, now + 0.15);
-                gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
-                osc2.connect(gain2);
-                gain2.connect(ctx.destination);
-                osc2.start(now + 0.15);
-                osc2.stop(now + 0.75);
-            } catch (e) {
-                // Audio context may be restricted before user gesture
-            }
-        }
-
-        function vibratePhone() {
-            if ('vibrate' in navigator) {
-                navigator.vibrate([200, 100, 200, 100, 300]);
-            }
-        }
-
-        // Poll backend for unread messages and bookings
+        // ─── Poll backend ────────────────────────────────────────
         async function pollUnreadAlerts() {
             if (isPolling) return;
             isPolling = true;
-
             try {
                 const res = await fetch("{{ route('investor.api.unread-alerts') }}", {
                     headers: { 'Accept': 'application/json' }
                 });
-                if (!res.ok) throw new Error('Network error');
+                if (!res.ok) return;
                 const data = await res.json();
 
-                // Update unread badge in top navbar
+                // Update navbar unread badge
                 const badge = document.getElementById('navUnreadChatBadge');
                 if (badge) {
                     if (data.unread_messages_count > 0) {
@@ -547,11 +332,10 @@
                     }
                 }
 
-                // Check for new customer message
+                // New message?
                 if (data.latest_message && data.latest_message.id !== lastSeenMessageId) {
                     if (lastSeenMessageId !== null) {
-                        // Truly a new message that arrived!
-                        triggerPhoneAlert(
+                        triggerAlert(
                             `📩 رسالة من النزيل (${data.latest_message.sender_name})`,
                             `شقة ${data.latest_message.apartment_number}: "${data.latest_message.snippet}"`,
                             data.latest_message.url,
@@ -561,74 +345,65 @@
                     lastSeenMessageId = data.latest_message.id;
                 }
 
-                // Check for new booking
+                // New booking?
                 if (data.latest_booking && data.latest_booking.id !== lastSeenBookingId) {
                     if (lastSeenBookingId !== null) {
-                        triggerPhoneAlert(
-                            `🎉 حجز جديد برقم #${data.latest_booking.reference}`,
-                            `النزيل: ${data.latest_booking.customer_name} | المبلغ: ${data.latest_booking.total_amount} ريال | شقة ${data.latest_booking.apartment_number}`,
+                        triggerAlert(
+                            `🎉 حجز جديد #${data.latest_booking.reference}`,
+                            `${data.latest_booking.customer_name} | ${data.latest_booking.total_amount} ريال | شقة ${data.latest_booking.apartment_number}`,
                             data.latest_booking.url,
                             'booking'
                         );
                     }
                     lastSeenBookingId = data.latest_booking.id;
                 }
-
-            } catch (err) {
-                // Ignore transient network errors
-            } finally {
+            } catch (_) { /* ignore network errors */ } finally {
                 isPolling = false;
             }
         }
 
-        function triggerPhoneAlert(title, message, url, type) {
-            playNotificationChime();
+        // ─── Trigger alert (sound + vibrate + toast + native if granted) ──
+        function triggerAlert(title, message, url, type) {
+            playChime();
             vibratePhone();
 
-            // Native Phone / System Notification
+            // Native browser notification if already granted (no prompt)
             if ('Notification' in window && Notification.permission === 'granted') {
-                const notif = new Notification(title, {
-                    body: message,
-                    icon: '/images/dark-logo.jpg',
-                    badge: '/images/dark-logo.jpg',
-                    vibrate: [200, 100, 200],
-                    data: { url: url }
-                });
-                notif.onclick = function () {
-                    window.focus();
-                    if (url && url !== '#') window.location.href = url;
-                };
+                try {
+                    const n = new Notification(title, {
+                        body: message,
+                        icon: '/images/dark-logo.jpg',
+                        badge: '/images/dark-logo.jpg',
+                        vibrate: [200, 100, 200],
+                        tag: type + '-' + Date.now(),
+                    });
+                    n.onclick = () => { window.focus(); if (url && url !== '#') window.location.href = url; };
+                } catch (_) {}
             }
 
-            // In-App Toast
-            showToastAlert(title, message, url, type);
+            showToast(title, message, url, type);
         }
 
-        function showToastAlert(title, message, url, type) {
+        // ─── Toast ───────────────────────────────────────────────
+        function showToast(title, message, url, type) {
             const toast = document.getElementById('liveAlertToast');
-            const titleElem = document.getElementById('toastTitle');
-            const msgElem = document.getElementById('toastMessage');
-            const actionBtn = document.getElementById('toastActionBtn');
-            const iconBox = document.getElementById('toastIconBox');
-
             if (!toast) return;
 
-            titleElem.innerText = title;
-            msgElem.innerText = message;
-            actionBtn.href = url;
+            document.getElementById('toastTitle').innerText = title;
+            document.getElementById('toastMessage').innerText = message;
+            document.getElementById('toastActionBtn').href = url || '#';
 
+            const iconBox = document.getElementById('toastIconBox');
             if (type === 'booking') {
-                iconBox.innerHTML = '<i class="fa-solid fa-calendar-check text-amber-400"></i>';
+                iconBox.innerHTML = '<i class="fa-solid fa-calendar-check"></i>';
                 iconBox.className = 'w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg flex-shrink-0 border border-amber-500/40';
             } else {
-                iconBox.innerHTML = '<i class="fa-solid fa-comments text-emerald-400"></i>';
+                iconBox.innerHTML = '<i class="fa-solid fa-comments"></i>';
                 iconBox.className = 'w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg flex-shrink-0 border border-emerald-500/40';
             }
 
             toast.classList.remove('-translate-y-24', 'opacity-0');
             toast.classList.add('translate-y-0', 'opacity-100');
-
-            // Auto dismiss after 9 seconds
             setTimeout(dismissToastAlert, 9000);
         }
 
@@ -638,6 +413,34 @@
                 toast.classList.remove('translate-y-0', 'opacity-100');
                 toast.classList.add('-translate-y-24', 'opacity-0');
             }
+        }
+
+        // ─── Web Audio chime ─────────────────────────────────────
+        function playChime() {
+            if (!chimeUnlocked) return;
+            try {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                if (!AC) return;
+                const ctx = new AC();
+                const now = ctx.currentTime;
+
+                [[587.33, 0, 0.5], [880, 0.15, 0.75]].forEach(([freq, delay, end]) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + delay);
+                    gain.gain.setValueAtTime(0.32, now + delay);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + end);
+                    osc.connect(gain).connect(ctx.destination);
+                    osc.start(now + delay);
+                    osc.stop(now + end);
+                });
+            } catch (_) {}
+        }
+
+        // ─── Vibrate ─────────────────────────────────────────────
+        function vibratePhone() {
+            if ('vibrate' in navigator) navigator.vibrate([200, 100, 200, 100, 300]);
         }
     </script>
 
