@@ -5,6 +5,11 @@
  * Routes all requests through Laravel's public/index.php
  */
 
+// Production security: Never leak PHP warnings or deprecation notices to client output
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED & ~E_NOTICE);
+
 $_SERVER['SCRIPT_FILENAME'] = __DIR__ . '/../public/index.php';
 $_SERVER['DOCUMENT_ROOT']   = __DIR__ . '/../public';
 
