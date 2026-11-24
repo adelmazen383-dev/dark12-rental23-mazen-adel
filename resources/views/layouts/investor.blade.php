@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>@yield('title', 'بوابة المستثمر') - أجنحة البرج</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -155,6 +159,13 @@
             <!-- Instant Phone Notifications Button & Actions -->
             <div class="flex items-center gap-2 sm:gap-3">
 
+                <!-- Live Bell Notifications Button -->
+                <button onclick="handleBellClick()" type="button" class="relative p-2 text-slate-600 hover:text-emerald-600 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 transition" title="الإشعارات الفورية (اضغط للاختبار أو التفعيل)">
+                    <i id="navBellIcon" class="fa-solid fa-bell text-base"></i>
+                    <span id="navAlertPulse" class="hidden absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                    <span id="navAlertDot" class="hidden absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                </button>
+
                 <!-- Live Unread Chat Pill -->
                 <a href="{{ route('investor.chats.index') }}" class="relative p-2 text-slate-600 hover:text-emerald-600 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 transition" title="المحادثات">
                     <i class="fa-solid fa-comments text-base"></i>
@@ -264,51 +275,107 @@
     </div>
 
     <!-- Floating Live Phone Notification Toast -->
-    <div id="liveAlertToast" class="fixed top-5 left-5 right-5 sm:left-auto sm:right-5 sm:w-96 z-50 transform -translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
-        <div class="bg-slate-900/95 backdrop-blur-xl border-2 border-emerald-500/80 rounded-2xl p-4 shadow-2xl text-white pointer-events-auto flex items-start gap-3.5">
-            <div id="toastIconBox" class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg flex-shrink-0 border border-emerald-500/40">
-                <i class="fa-solid fa-bell"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between gap-2 mb-1">
-                    <h5 id="toastTitle" class="font-black text-xs text-emerald-300 truncate">تنبيه فوري جديد</h5>
-                    <span id="toastTime" class="text-[10px] text-slate-400">الآن</span>
+    <div id="liveAlertToast" class="fixed bottom-5 right-5 left-5 sm:left-auto sm:w-96 z-50 transform translate-y-24 opacity-0 transition-all duration-500 ease-out pointer-events-none">
+        <div class="bg-slate-900/97 backdrop-blur-xl border border-emerald-500/60 rounded-2xl shadow-2xl shadow-black/40 text-white pointer-events-auto overflow-hidden">
+            <!-- Progress bar -->
+            <div id="toastProgress" class="h-0.5 bg-emerald-500 w-full transition-all duration-[9000ms] ease-linear" style="width:100%"></div>
+            <div class="p-4 flex items-start gap-3.5">
+                <div id="toastIconBox" class="w-11 h-11 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl flex-shrink-0 border border-emerald-500/30">
+                    <i class="fa-solid fa-bell"></i>
                 </div>
-                <p id="toastMessage" class="text-xs text-slate-200 line-clamp-2 leading-relaxed mb-2.5">
-                    محتوى التنبيه هنا...
-                </p>
-                <div class="flex items-center gap-2">
-                    <a id="toastActionBtn" href="#" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition flex items-center gap-1.5 shadow-sm">
-                        <span>عرض والرد الآن</span>
-                        <i class="fa-solid fa-arrow-left text-[10px]"></i>
-                    </a>
-                    <button onclick="dismissToastAlert()" type="button" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 text-xs font-bold transition">
-                        إغلاق
-                    </button>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between gap-2 mb-0.5">
+                        <h5 id="toastTitle" class="font-black text-sm text-white leading-tight">تنبيه جديد</h5>
+                        <button onclick="dismissToastAlert()" type="button" class="text-slate-500 hover:text-white transition mt-0.5 flex-shrink-0">
+                            <i class="fa-solid fa-xmark text-sm"></i>
+                        </button>
+                    </div>
+                    <p id="toastMessage" class="text-xs text-slate-300 leading-relaxed mb-3 line-clamp-2">محتوى التنبيه...</p>
+                    <div class="flex items-center gap-2">
+                        <a id="toastActionBtn" href="#" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors flex items-center gap-1.5">
+                            <span>عرض الآن</span>
+                            <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                        </a>
+                        <span id="toastTime" class="text-[11px] text-slate-500 me-auto">الآن</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Live Alert Polling Script — Automatic, No User Setup Required -->
+    <!-- Enable Native Notifications Button (shown once) -->
+    <div id="notifPermBtn" class="fixed bottom-5 left-5 z-40 hidden">
+        <button onclick="requestNotifPermission()" type="button"
+            class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white text-xs font-bold shadow-xl transition-all">
+            <i class="fa-solid fa-bell-slash text-amber-400"></i>
+            <span>فعّل الإشعارات الفورية</span>
+        </button>
+    </div>
+
+    <!-- Live Alert Polling & Notification Engine -->
     <script>
         let lastSeenMessageId = null;
         let lastSeenBookingId = null;
         let isPolling = false;
-        let chimeUnlocked = false; // Audio unlocked after first user gesture
+        let chimeUnlocked = false;
+        let toastTimeout = null;
 
-        // ─── Init ───────────────────────────────────────────────
+        // ─── Init on page load ───────────────────────────────────
         document.addEventListener('DOMContentLoaded', function () {
-            // Unlock audio on first any-touch so chime plays on mobile
+            // Register Service Worker for PWA & Native Push capabilities
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js').catch(function () {});
+            }
+
+            // Check Native Notification permission
+            if ('Notification' in window) {
+                if (Notification.permission === 'default') {
+                    const btn = document.getElementById('notifPermBtn');
+                    if (btn) btn.classList.remove('hidden');
+                } else if (Notification.permission === 'granted') {
+                    const dot = document.getElementById('navAlertDot');
+                    if (dot) dot.classList.remove('hidden');
+                }
+            }
+
+            // Audio unlock on user touch
             document.addEventListener('click', function unlockAudio() {
                 chimeUnlocked = true;
                 document.removeEventListener('click', unlockAudio);
             }, { once: true });
 
-            // Start polling immediately then every 6 seconds
-            setTimeout(pollUnreadAlerts, 1200);
-            setInterval(pollUnreadAlerts, 6000);
+            // Start polling unread alerts (first check at 1.5s then every 5s)
+            setTimeout(pollUnreadAlerts, 1500);
+            setInterval(pollUnreadAlerts, 5000);
         });
+
+        // ─── Permission handler ──────────────────────────────────
+        function requestNotifPermission() {
+            if (!('Notification' in window)) {
+                triggerAlert('تنبيه المتصفح', 'المتصفح لا يدعم إشعارات النظام، لكن التنبيهات الصوتية والشاشية تعمل دائماً.', '#', 'system');
+                return;
+            }
+            Notification.requestPermission().then(function (perm) {
+                const btn = document.getElementById('notifPermBtn');
+                if (perm === 'granted') {
+                    if (btn) btn.classList.add('hidden');
+                    const dot = document.getElementById('navAlertDot');
+                    if (dot) dot.classList.remove('hidden');
+                    triggerAlert('🔔 تم تفعيل إشعارات الجوال الفورية!', 'ستصلك التنبيهات مع نغمة واهتزاز أولاً بأول.', '#', 'system');
+                } else if (btn) {
+                    btn.classList.add('hidden');
+                }
+            });
+        }
+
+        // ─── Bell Click Handler (Quick Test / Enable) ────────────
+        function handleBellClick() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                requestNotifPermission();
+            } else {
+                triggerAlert('🔔 اختبار الإشعارات الفورية', 'نظام التنبيهات الصوتية والاهتزاز يعمل بنجاح على هاتفك.', '#', 'system');
+            }
+        }
 
         // ─── Poll backend ────────────────────────────────────────
         async function pollUnreadAlerts() {
@@ -332,7 +399,17 @@
                     }
                 }
 
-                // New message?
+                // Show alert pulse on bell if there's any active alert
+                const pulse = document.getElementById('navAlertPulse');
+                if (pulse) {
+                    if (data.unread_messages_count > 0 || (data.unread_bookings_count && data.unread_bookings_count > 0)) {
+                        pulse.classList.remove('hidden');
+                    } else {
+                        pulse.classList.add('hidden');
+                    }
+                }
+
+                // New message notification
                 if (data.latest_message && data.latest_message.id !== lastSeenMessageId) {
                     if (lastSeenMessageId !== null) {
                         triggerAlert(
@@ -345,7 +422,7 @@
                     lastSeenMessageId = data.latest_message.id;
                 }
 
-                // New booking?
+                // New booking notification
                 if (data.latest_booking && data.latest_booking.id !== lastSeenBookingId) {
                     if (lastSeenBookingId !== null) {
                         triggerAlert(
@@ -357,79 +434,120 @@
                     }
                     lastSeenBookingId = data.latest_booking.id;
                 }
-            } catch (_) { /* ignore network errors */ } finally {
+            } catch (_) { /* ignore network error */ } finally {
                 isPolling = false;
             }
         }
 
-        // ─── Trigger alert (sound + vibrate + toast + native if granted) ──
+        // ─── Trigger Alert (Chime + Vibrate + Native + Toast) ────
         function triggerAlert(title, message, url, type) {
             playChime();
             vibratePhone();
 
-            // Native browser notification if already granted (no prompt)
+            // Native notification (Chrome Desktop & Mobile)
             if ('Notification' in window && Notification.permission === 'granted') {
                 try {
                     const n = new Notification(title, {
                         body: message,
                         icon: '/images/dark-logo.jpg',
                         badge: '/images/dark-logo.jpg',
-                        vibrate: [200, 100, 200],
+                        vibrate: [200, 100, 200, 100, 300],
                         tag: type + '-' + Date.now(),
+                        renotify: true,
                     });
-                    n.onclick = () => { window.focus(); if (url && url !== '#') window.location.href = url; };
-                } catch (_) {}
+                    n.onclick = () => {
+                        window.focus();
+                        if (url && url !== '#') window.location.href = url;
+                    };
+                } catch (e) {
+                    // Mobile Android Chrome requires ServiceWorkerRegistration
+                    if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+                        navigator.serviceWorker.ready.then(reg => {
+                            reg.showNotification(title, {
+                                body: message,
+                                icon: '/images/dark-logo.jpg',
+                                badge: '/images/dark-logo.jpg',
+                                vibrate: [200, 100, 200, 100, 300],
+                                data: { url: url }
+                            });
+                        }).catch(() => {});
+                    }
+                }
             }
 
             showToast(title, message, url, type);
         }
 
-        // ─── Toast ───────────────────────────────────────────────
+        // ─── Toast Alert UI ──────────────────────────────────────
         function showToast(title, message, url, type) {
             const toast = document.getElementById('liveAlertToast');
             if (!toast) return;
 
             document.getElementById('toastTitle').innerText = title;
             document.getElementById('toastMessage').innerText = message;
-            document.getElementById('toastActionBtn').href = url || '#';
-
-            const iconBox = document.getElementById('toastIconBox');
-            if (type === 'booking') {
-                iconBox.innerHTML = '<i class="fa-solid fa-calendar-check"></i>';
-                iconBox.className = 'w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg flex-shrink-0 border border-amber-500/40';
-            } else {
-                iconBox.innerHTML = '<i class="fa-solid fa-comments"></i>';
-                iconBox.className = 'w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg flex-shrink-0 border border-emerald-500/40';
+            const actionBtn = document.getElementById('toastActionBtn');
+            if (actionBtn) {
+                actionBtn.href = url || '#';
+                actionBtn.style.display = (url && url !== '#') ? 'inline-flex' : 'none';
             }
 
-            toast.classList.remove('-translate-y-24', 'opacity-0');
+            const iconBox = document.getElementById('toastIconBox');
+            const progress = document.getElementById('toastProgress');
+
+            if (type === 'booking') {
+                iconBox.innerHTML = '<i class="fa-solid fa-calendar-check"></i>';
+                iconBox.className = 'w-11 h-11 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl flex-shrink-0 border border-amber-500/40';
+                if (progress) progress.className = 'h-0.5 bg-amber-500 w-full transition-all duration-[8000ms] ease-linear';
+            } else if (type === 'message') {
+                iconBox.innerHTML = '<i class="fa-solid fa-comments"></i>';
+                iconBox.className = 'w-11 h-11 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl flex-shrink-0 border border-emerald-500/40';
+                if (progress) progress.className = 'h-0.5 bg-emerald-500 w-full transition-all duration-[8000ms] ease-linear';
+            } else {
+                iconBox.innerHTML = '<i class="fa-solid fa-bell"></i>';
+                iconBox.className = 'w-11 h-11 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center text-xl flex-shrink-0 border border-sky-500/40';
+                if (progress) progress.className = 'h-0.5 bg-sky-500 w-full transition-all duration-[8000ms] ease-linear';
+            }
+
+            // Animate progress bar
+            if (progress) {
+                progress.style.transition = 'none';
+                progress.style.width = '100%';
+                setTimeout(() => {
+                    progress.style.transition = 'width 8000ms linear';
+                    progress.style.width = '0%';
+                }, 50);
+            }
+
+            toast.classList.remove('translate-y-24', 'opacity-0');
             toast.classList.add('translate-y-0', 'opacity-100');
-            setTimeout(dismissToastAlert, 9000);
+
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(dismissToastAlert, 8000);
         }
 
         function dismissToastAlert() {
             const toast = document.getElementById('liveAlertToast');
             if (toast) {
                 toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('-translate-y-24', 'opacity-0');
+                toast.classList.add('translate-y-24', 'opacity-0');
             }
         }
 
-        // ─── Web Audio chime ─────────────────────────────────────
+        // ─── Melodic Audio Chime (Web Audio API) ─────────────────
         function playChime() {
-            if (!chimeUnlocked) return;
             try {
                 const AC = window.AudioContext || window.webkitAudioContext;
                 if (!AC) return;
                 const ctx = new AC();
                 const now = ctx.currentTime;
 
-                [[587.33, 0, 0.5], [880, 0.15, 0.75]].forEach(([freq, delay, end]) => {
+                // High clarity melodic double-tone (E5 -> A5)
+                [[659.25, 0, 0.45], [880, 0.14, 0.75]].forEach(([freq, delay, end]) => {
                     const osc = ctx.createOscillator();
                     const gain = ctx.createGain();
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(freq, now + delay);
-                    gain.gain.setValueAtTime(0.32, now + delay);
+                    gain.gain.setValueAtTime(0.35, now + delay);
                     gain.gain.exponentialRampToValueAtTime(0.001, now + end);
                     osc.connect(gain).connect(ctx.destination);
                     osc.start(now + delay);
@@ -438,9 +556,11 @@
             } catch (_) {}
         }
 
-        // ─── Vibrate ─────────────────────────────────────────────
+        // ─── Phone Vibration Pattern ─────────────────────────────
         function vibratePhone() {
-            if ('vibrate' in navigator) navigator.vibrate([200, 100, 200, 100, 300]);
+            if ('vibrate' in navigator) {
+                navigator.vibrate([200, 100, 200, 100, 300]);
+            }
         }
     </script>
 

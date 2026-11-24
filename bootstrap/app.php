@@ -11,6 +11,13 @@ $app = Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Exclude polling/push API routes from CSRF verification
+        $middleware->validateCsrfTokens(except: [
+            'investor/api/unread-alerts',
+            'investor/api/push-subscribe',
+            'investor/api/test-push',
+        ]);
+
         $middleware->web(append: [
             \App\Http\Middleware\SecurityHeadersMiddleware::class,
         ]);

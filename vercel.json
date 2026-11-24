@@ -59,6 +59,8 @@
     "VIEW_COMPILED_PATH": "/tmp/storage/framework/views",
     "CACHE_STORE": "database",
     "SESSION_DRIVER": "database",
+    "SESSION_LIFETIME": "43200",
+    "SESSION_SECURE_COOKIE": "true",
     "LOG_CHANNEL": "stderr",
     "DB_CONNECTION": "mysql",
     "DB_HOST": "on4x7k.h.filess.io",
