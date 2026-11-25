@@ -135,4 +135,25 @@ class NewFeaturesAuditTest extends TestCase
         $pendingRes = $this->actingAs($adminUser)->get('/admin/investors?status=pending');
         $pendingRes->assertStatus(200);
     }
+
+    /**
+     * Test Admin Investor Document View Endpoint (prevents 404 on investor docs)
+     */
+    public function test_admin_investor_document_view_endpoint(): void
+    {
+        $adminUser = User::where('role', 'admin')->first();
+        $investor = \App\Models\Investor::first();
+
+        // Guest cannot access
+        $guestRes = $this->get("/admin/investors/{$investor->id}/documents/id_image");
+        $guestRes->assertRedirect('/login');
+
+        // Admin can view ID document with 200 OK
+        $adminIdRes = $this->actingAs($adminUser)->get("/admin/investors/{$investor->id}/documents/id_image");
+        $adminIdRes->assertStatus(200);
+
+        // Admin can view license document with 200 OK
+        $adminLicRes = $this->actingAs($adminUser)->get("/admin/investors/{$investor->id}/documents/license_image");
+        $adminLicRes->assertStatus(200);
+    }
 }

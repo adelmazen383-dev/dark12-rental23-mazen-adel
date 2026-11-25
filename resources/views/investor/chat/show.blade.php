@@ -222,7 +222,7 @@
         const newText = prompt('تعديل الرسالة:', oldText);
         if (newText === null || newText.trim() === '' || newText === oldText) return;
 
-        fetch(`/investor/chats/{{ $conversation->id }}/messages/${msgId}`, {
+        fetch(`{{ url('investor/chats/' . $conversation->id) }}/messages/${msgId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -246,7 +246,7 @@
     window.deleteMsg = function(msgId) {
         if (!confirm('هل أنت متأكد من حذف هذه الرسالة؟')) return;
 
-        fetch(`/investor/chats/{{ $conversation->id }}/messages/${msgId}`, {
+        fetch(`{{ url('investor/chats/' . $conversation->id) }}/messages/${msgId}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',

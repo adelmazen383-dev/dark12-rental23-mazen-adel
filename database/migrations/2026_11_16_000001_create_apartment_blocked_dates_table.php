@@ -18,7 +18,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->timestamps();
 
-            $table->index(['apartment_id', 'start_date', 'end_date']);
+            $table->index(['apartment_id', 'start_date', 'end_date'], 'apt_blk_dates_idx');
         });
     }
 

@@ -1,2 +1,19 @@
 User-agent: *
-Disallow:
+Allow: /app/
+Disallow: /app/admin/
+Disallow: /app/investor/
+Disallow: /app/my-chats
+Disallow: /app/chat/
+Disallow: /app/booking/
+Disallow: /app/login
+Disallow: /app/register
+Disallow: /app/investor/register
+Disallow: /admin/
+Disallow: /investor/
+Disallow: /my-chats
+Disallow: /chat/
+Disallow: /booking/
+Disallow: /login
+Disallow: /register
+
+Sitemap: https://thiqa.me/app/sitemap.xml

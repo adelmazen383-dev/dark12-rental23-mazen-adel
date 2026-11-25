@@ -81,6 +81,17 @@ class ContractController extends Controller
 
         AuditService::log('rental_contract_created', $contract, null, $contract->toArray());
 
+        $contractInvestor = Investor::find($validated['investor_id']);
+        if ($contractInvestor) {
+            \App\Services\WebPushService::sendToInvestor(
+                $contractInvestor,
+                "📝 تم إصدار عقد إيجار رسمي لشقة {$contract->unit_number}",
+                "العقد #{$contract->contract_number} | المستأجر: {$contract->tenant_name} | قيمة الإيجار: " . number_format((float) $contract->rent_amount, 0) . " ريال",
+                route('investor.contracts.show', $contract->id),
+                'contract-' . $contract->id
+            );
+        }
+
         return redirect()->route('admin.contracts.show', $contract->id)
             ->with('success', "تم إصدار وتوثيق عقد الإيجار رقم {$contract->contract_number} بنجاح.");
     }

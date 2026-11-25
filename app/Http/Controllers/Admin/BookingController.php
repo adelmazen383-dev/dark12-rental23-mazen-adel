@@ -68,6 +68,14 @@ class BookingController extends Controller
                         'wallet',
                         $wallet->id
                     );
+
+                    \App\Services\WebPushService::sendToInvestor(
+                        $investor,
+                        '⚠️ تنبيه انخفاض رصيد المحفظة',
+                        "رصيد محفظتك الحالي {$wallet->balance} ريال. يرجى الشحن لضمان استمرار ظهور شققك للعملاء.",
+                        route('investor.wallet.index'),
+                        'wallet-low-' . $wallet->id
+                    );
                 }
             } catch (\Exception $e) {
                 // If wallet balance insufficient, admin can still confirm but with a warning logged
@@ -165,6 +173,17 @@ class BookingController extends Controller
             'booking',
             $booking->id
         );
+
+        $booking->loadMissing('apartment.investor');
+        if ($booking->apartment?->investor) {
+            \App\Services\WebPushService::sendToInvestor(
+                $booking->apartment->investor,
+                "❌ تم إلغاء حجز شقة {$booking->apartment->apartment_number}",
+                "رقم الحجز #{$booking->reference_number} | السبب: {$request->cancellation_reason}",
+                route('investor.bookings.show', $booking->id),
+                'booking-cancelled-' . $booking->id
+            );
+        }
 
         return back()->with('success', 'تم إلغاء الحجز وإعادة رسوم الحجز إلى محفظة المستثمر بنجاح.');
     }

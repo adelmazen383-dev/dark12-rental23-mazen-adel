@@ -88,30 +88,60 @@ class DashboardController extends Controller
         $recentBookingsQuery = Booking::with('apartment')
             ->whereIn('apartment_id', $apartmentIds)
             ->where('created_at', '>=', now()->subHours(24))
-            ->whereIn('status', ['pending_payment', 'confirmed']);
+            ->whereIn('status', ['pending_payment', 'pending_verification', 'confirmed']);
 
         $recentBookingsCount = $recentBookingsQuery->count();
         $latestBookingObj = (clone $recentBookingsQuery)->latest()->first();
 
         $latestBooking = null;
         if ($latestBookingObj) {
+            $statusLabel = match ($latestBookingObj->status) {
+                'confirmed' => 'مؤكد',
+                'pending_verification' => 'بانتظار مراجعة الإيصال',
+                default => 'بانتظار الدفع',
+            };
             $latestBooking = [
                 'id' => $latestBookingObj->id,
                 'reference' => $latestBookingObj->reference_number,
                 'customer_name' => $latestBookingObj->customer_name,
                 'total_amount' => number_format($latestBookingObj->total_amount, 0),
                 'apartment_number' => $latestBookingObj->apartment?->apartment_number ?? '',
-                'status' => $latestBookingObj->status === 'confirmed' ? 'مؤكد' : 'بانتظار الدفع',
+                'status' => $statusLabel,
                 'url' => route('investor.bookings.show', $latestBookingObj->id),
             ];
         }
 
+        // Pending inspection requests in last 24 hours
+        $recentInspectionsQuery = InspectionRequest::with('apartment')
+            ->whereIn('apartment_id', $apartmentIds)
+            ->where('created_at', '>=', now()->subHours(24))
+            ->where('status', 'pending');
+
+        $recentInspectionsCount = $recentInspectionsQuery->count();
+        $latestInspectionObj = (clone $recentInspectionsQuery)->latest()->first();
+        $latestInspection = null;
+        if ($latestInspectionObj) {
+            $latestInspection = [
+                'id' => $latestInspectionObj->id,
+                'customer_name' => $latestInspectionObj->customer_name,
+                'customer_phone' => $latestInspectionObj->customer_phone,
+                'apartment_number' => $latestInspectionObj->apartment?->apartment_number ?? '',
+                'url' => route('investor.dashboard'),
+            ];
+        }
+
+        $pushSubscriptionsCount = \App\Models\PushSubscription::where('investor_id', $investor->id)->count();
+
         return response()->json([
             'unread_messages_count' => $unreadMessagesCount,
             'recent_bookings_count' => $recentBookingsCount,
-            'total_alerts' => $unreadMessagesCount + $recentBookingsCount,
+            'unread_bookings_count' => $recentBookingsCount,
+            'recent_inspections_count' => $recentInspectionsCount,
+            'total_alerts' => $unreadMessagesCount + $recentBookingsCount + $recentInspectionsCount,
             'latest_message' => $latestMessage,
             'latest_booking' => $latestBooking,
+            'latest_inspection' => $latestInspection,
+            'push_subscriptions_count' => $pushSubscriptionsCount,
         ]);
     }
 
@@ -131,19 +161,27 @@ class DashboardController extends Controller
     public function subscribePush(Request $request)
     {
         $validated = $request->validate([
-            'endpoint' => 'required|string',
+            'endpoint' => 'required|string|max:2000',
             'keys.p256dh' => 'required|string',
             'keys.auth' => 'required|string',
+            'contentEncoding' => 'nullable|string|max:30',
         ]);
 
         $sub = \App\Services\WebPushService::saveSubscription(
             auth()->user(),
             $validated['endpoint'],
             $validated['keys']['p256dh'],
-            $validated['keys']['auth']
+            $validated['keys']['auth'],
+            $validated['contentEncoding'] ?? 'aes128gcm'
         );
 
-        return response()->json(['success' => true, 'id' => $sub->id]);
+        $subscriptionsCount = \App\Models\PushSubscription::where('investor_id', auth()->user()->investor?->id)->count();
+
+        return response()->json([
+            'success' => true,
+            'id' => $sub->id,
+            'subscriptions_count' => $subscriptionsCount,
+        ]);
     }
 
     /**
@@ -156,17 +194,52 @@ class DashboardController extends Controller
             return response()->json(['success' => false, 'message' => 'حساب مستثمر غير متوفر'], 400);
         }
 
+        $subscriptionsCount = \App\Models\PushSubscription::where(function ($q) use ($investor) {
+            $q->where('investor_id', $investor->id);
+            if ($investor->user_id) {
+                $q->orWhere('user_id', $investor->user_id);
+            }
+        })->count();
+
+        $delay = max(0, min(60, (int) $request->input('delay', 0)));
+        if ($delay > 0) {
+            $artisan = base_path('artisan');
+            $phpBinary = file_exists('/usr/bin/php8.3') ? '/usr/bin/php8.3' : (PHP_BINARY ?: 'php');
+            $cmd = sprintf(
+                'nohup %s %s push:test %d --delay=%d > /dev/null 2>&1 &',
+                escapeshellcmd($phpBinary),
+                escapeshellarg($artisan),
+                $investor->id,
+                $delay
+            );
+            @exec($cmd);
+
+            return response()->json([
+                'success' => true,
+                'delayed' => true,
+                'delay_seconds' => $delay,
+                'subscriptions_count' => $subscriptionsCount,
+                'message' => "تمت جدولة الإشعار! أغلق الموقع والمتصفح أو اقفل الشاشة الآن تماماً، وسيصلك التنبيه خلال {$delay} ثوانٍ 🚀",
+            ]);
+        }
+
         $sent = \App\Services\WebPushService::sendToInvestor(
             $investor,
-            '🔔 تجربة إشعار دارك (الموقع مغلق)',
-            'مبروك! نظام الإشعارات في الخلفية شغال بنجاح وصوت التنبيه فعال حتى والموقع مغلق.',
-            route('investor.chats.index')
+            '🔔 تجربة إشعار دارك (يعمل والموقع مغلق)',
+            'مبروك! نظام الإشعارات الفورية شغال بنجاح — ستصلك طلبات الحجز ورسائل العملاء فوراً حتى لو المتصفح مغلق.',
+            route('investor.bookings.index'),
+            'test-push-' . time()
         );
 
         return response()->json([
-            'success' => true,
+            'success' => $sent > 0,
             'sent_count' => $sent,
-            'message' => $sent > 0 ? 'تم إرسال الإشعار الفوري بنجاح إلى هاتفك!' : 'لم يتم العثور على أجهزة مشتركة، يرجى تفعيل الإشعارات أولاً.',
+            'subscriptions_count' => $subscriptionsCount,
+            'message' => $sent > 0
+                ? "تم إرسال الإشعار الفوري بنجاح إلى {$sent} جهاز!"
+                : ($subscriptionsCount > 0
+                    ? 'تم العثور على جهاز مسجل لكن تعذر الإرسال إليه (قد يكون الاشتراك منتهي، أعد تفعيل الإشعارات).'
+                    : 'لم يتم تسجيل هذا الجهاز بعد، يرجى الضغط على «تفعيل الإشعارات» والسماح بها.'),
         ]);
     }
 }

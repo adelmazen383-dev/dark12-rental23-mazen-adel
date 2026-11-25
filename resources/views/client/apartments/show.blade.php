@@ -1,6 +1,55 @@
 @extends('layouts.client')
 
-@section('title', 'تفاصيل شقة ' . $apartment->apartment_number . ' - الدور ' . $apartment->floor_number)
+@php
+    $firstImg = $images->isNotEmpty()
+        ? asset('storage/' . $images->first()->file_path)
+        : asset('images/dark-logo.jpg');
+    $aptTitle = 'شقة ' . $apartment->apartment_number . ' - الدور ' . $apartment->floor_number . ' | منصة دارك لتنظيم الإيجار';
+    $aptDesc = $apartment->description
+        ? \Illuminate\Support\Str::limit(strip_tags($apartment->description), 155)
+        : ('احجز شقة رقم ' . $apartment->apartment_number . ' في الدور ' . $apartment->floor_number . ' بسعر ' . number_format($apartment->daily_price, 0) . ' ريال سعودي/ليلة عبر منصة دارك لتنظيم الإيجار.');
+    $aptSchema = [
+        '@context' => 'https://schema.org',
+        '@type' => 'Apartment',
+        'name' => 'شقة رقم ' . $apartment->apartment_number . ' - الدور ' . $apartment->floor_number,
+        'description' => $aptDesc,
+        'url' => url('/apartments/' . $apartment->id),
+        'image' => $firstImg,
+        'numberOfRooms' => (int) ($apartment->rooms_count ?? 1),
+        'numberOfBathroomsTotal' => (int) ($apartment->bathrooms_count ?? 1),
+        'floorLevel' => (string) $apartment->floor_number,
+        'address' => [
+            '@type' => 'PostalAddress',
+            'addressCountry' => 'SA',
+        ],
+        'offers' => [
+            '@type' => 'Offer',
+            'price' => (float) $apartment->daily_price,
+            'priceCurrency' => 'SAR',
+            'availability' => $apartment->isAvailableForClients()
+                ? 'https://schema.org/InStock'
+                : 'https://schema.org/OutOfStock',
+            'url' => url('/apartments/' . $apartment->id),
+        ],
+    ];
+@endphp
+
+@section('title', $aptTitle)
+@section('meta_description', $aptDesc)
+@section('meta_keywords', 'شقة ' . $apartment->apartment_number . ', إيجار شقق السعودية, شقق مفروشة, منصة دارك, حجز شقة فندقية')
+@section('og_type', 'product')
+@section('og_title', $aptTitle)
+@section('og_description', $aptDesc)
+@section('og_image', $firstImg)
+@section('twitter_title', $aptTitle)
+@section('twitter_description', $aptDesc)
+@section('canonical', url('/apartments/' . $apartment->id))
+
+@section('structured_data')
+<script type="application/ld+json">
+{!! json_encode($aptSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+</script>
+@endsection
 
 @section('content')
 <div class="space-y-6">

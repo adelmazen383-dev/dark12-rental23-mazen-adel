@@ -71,6 +71,7 @@ class ChatController extends Controller
             ->where('status', 'open')
             ->first();
 
+        $isNewConversation = false;
         if (!$conversation) {
             $conversation = Conversation::create([
                 'apartment_id' => $apartment->id,
@@ -83,6 +84,7 @@ class ChatController extends Controller
                 'status' => 'open',
                 'deal_status' => 'negotiating',
             ]);
+            $isNewConversation = true;
         }
 
         // Add initial message if provided
@@ -101,12 +103,14 @@ class ChatController extends Controller
             $conversation->update(['last_message_at' => now()]);
 
             // Notify investor via phone/WhatsApp & Web Push (works even when site is closed)
-            $apartment = $conversation->apartment;
-            if ($apartment && $apartment->investor) {
-                if ($apartment->investor->whatsapp) {
+            $conversation->loadMissing('apartment.investor');
+            $apt = $conversation->apartment;
+            $investor = $apt?->investor ?? $conversation->investor;
+            if ($investor) {
+                if ($investor->whatsapp) {
                     NotificationService::sendWhatsApp(
-                        $apartment->investor->whatsapp,
-                        "💬 استفسار ومحادثة جديدة من النزيل ({$conversation->customer_name}) حول شقة {$apartment->apartment_number}:\n\"{$guardResult['cleaned_message']}\"\nرابط الرد الفوري من بوابتك:\n" . route('investor.chats.show', $conversation->id),
+                        $investor->whatsapp,
+                        "💬 استفسار ومحادثة جديدة من النزيل ({$conversation->customer_name}) حول شقة {$apt?->apartment_number}:\n\"{$guardResult['cleaned_message']}\"\nرابط الرد الفوري من بوابتك:\n" . route('investor.chats.show', $conversation->id),
                         'investor',
                         'chat',
                         $conversation->id
@@ -114,9 +118,22 @@ class ChatController extends Controller
                 }
 
                 \App\Services\WebPushService::sendToInvestor(
-                    $apartment->investor,
-                    "💬 رسالة من ({$conversation->customer_name}) - شقة {$apartment->apartment_number}",
+                    $investor,
+                    "💬 رسالة من ({$conversation->customer_name}) - شقة {$apt?->apartment_number}",
                     $guardResult['cleaned_message'],
+                    route('investor.chats.show', $conversation->id),
+                    'chat-' . $conversation->id
+                );
+            }
+        } elseif ($isNewConversation) {
+            $conversation->loadMissing('apartment.investor');
+            $apt = $conversation->apartment;
+            $investor = $apt?->investor ?? $conversation->investor;
+            if ($investor) {
+                \App\Services\WebPushService::sendToInvestor(
+                    $investor,
+                    "💬 عميل جديد يريد التواصل - شقة {$apt?->apartment_number}",
+                    "العميل ({$conversation->customer_name}) فتح محادثة للاستفسار عن الشقة",
                     route('investor.chats.show', $conversation->id),
                     'chat-' . $conversation->id
                 );
@@ -169,12 +186,14 @@ class ChatController extends Controller
         $conversation->update(['last_message_at' => now()]);
 
         // Notify investor via phone/WhatsApp & Web Push (reaches investor even if site/browser is closed)
+        $conversation->loadMissing('apartment.investor');
         $apartment = $conversation->apartment;
-        if ($apartment && $apartment->investor) {
-            if ($apartment->investor->whatsapp) {
+        $investor = $apartment?->investor ?? $conversation->investor;
+        if ($investor) {
+            if ($investor->whatsapp) {
                 NotificationService::sendWhatsApp(
-                    $apartment->investor->whatsapp,
-                    "💬 رسالة جديدة من النزيل ({$conversation->customer_name}) حول شقة {$apartment->apartment_number}:\n\"{$guardResult['cleaned_message']}\"\nرابط الرد الفوري في بوابتك:\n" . route('investor.chats.show', $conversation->id),
+                    $investor->whatsapp,
+                    "💬 رسالة جديدة من النزيل ({$conversation->customer_name}) حول شقة {$apartment?->apartment_number}:\n\"{$guardResult['cleaned_message']}\"\nرابط الرد الفوري في بوابتك:\n" . route('investor.chats.show', $conversation->id),
                     'investor',
                     'chat',
                     $conversation->id
@@ -182,8 +201,8 @@ class ChatController extends Controller
             }
 
             \App\Services\WebPushService::sendToInvestor(
-                $apartment->investor,
-                "💬 رسالة من ({$conversation->customer_name}) - شقة {$apartment->apartment_number}",
+                $investor,
+                "💬 رسالة من ({$conversation->customer_name}) - شقة {$apartment?->apartment_number}",
                 $guardResult['cleaned_message'],
                 route('investor.chats.show', $conversation->id),
                 'chat-' . $conversation->id

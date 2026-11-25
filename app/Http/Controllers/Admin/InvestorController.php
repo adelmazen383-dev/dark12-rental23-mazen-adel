@@ -8,6 +8,7 @@ use App\Services\{AuditService, NotificationService, WalletService};
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class InvestorController extends Controller
 {
@@ -98,6 +99,14 @@ class InvestorController extends Controller
             'investor',
             'investor',
             $investor->id
+        );
+
+        \App\Services\WebPushService::sendToInvestor(
+            $investor,
+            '🎉 تم اعتماد حسابك في منصة دارك!',
+            'تهانينا! حسابك مفعّل الآن. يرجى شحن المحفظة لتظهر شققك وتستقبل الحجوزات فوراً.',
+            route('investor.wallet.index'),
+            'investor-approved-' . $investor->id
         );
 
         return back()->with('success', 'تم اعتماد المستثمر وتفعيل شققه بنجاح.');
@@ -260,5 +269,58 @@ class InvestorController extends Controller
         );
 
         return back()->with('success', "تم تعيين كلمة المرور الجديدة للمستثمر ({$investor->full_name}) بنجاح وإشعار المستثمر فورياً عبر واتساب.");
+    }
+
+    /**
+     * View or serve investor document (ID or Tourism License) safely
+     * Works seamlessly even if symlinks are broken or serverless
+     */
+    public function viewDocument(Investor $investor, string $type)
+    {
+        abort_if(!in_array($type, ['id_image', 'license_image'], true), 404, 'نوع الوثيقة غير صالح.');
+
+        $relativePath = $investor->{$type};
+        if (!$relativePath) {
+            return $type === 'license_image'
+                ? \App\Services\FallbackMediaService::renderLicenseDocumentSvg('default_license.svg')
+                : \App\Services\FallbackMediaService::renderIdDocumentSvg('default_id.svg');
+        }
+
+        // Candidates on disk
+        $candidates = [
+            storage_path('app/public/' . $relativePath),
+            public_path('storage/' . $relativePath),
+            public_path($relativePath),
+            base_path('storage/app/public/' . $relativePath),
+        ];
+
+        foreach ($candidates as $filePath) {
+            if (file_exists($filePath) && is_file($filePath)) {
+                $mime = @mime_content_type($filePath) ?: 'application/octet-stream';
+                return response()->file($filePath, [
+                    'Content-Type' => $mime,
+                    'Content-Disposition' => 'inline; filename="' . basename($filePath) . '"',
+                    'Cache-Control' => 'private, max-age=3600',
+                    'X-Content-Type-Options' => 'nosniff',
+                ]);
+            }
+        }
+
+        // Check Laravel Storage disk directly
+        if (Storage::disk('public')->exists($relativePath)) {
+            $filePath = Storage::disk('public')->path($relativePath);
+            $mime = @mime_content_type($filePath) ?: 'application/octet-stream';
+            return response()->file($filePath, [
+                'Content-Type' => $mime,
+                'Content-Disposition' => 'inline; filename="' . basename($filePath) . '"',
+                'Cache-Control' => 'private, max-age=3600',
+                'X-Content-Type-Options' => 'nosniff',
+            ]);
+        }
+
+        // Fallback dynamic SVG document
+        return $type === 'license_image'
+            ? \App\Services\FallbackMediaService::renderLicenseDocumentSvg($relativePath)
+            : \App\Services\FallbackMediaService::renderIdDocumentSvg($relativePath);
     }
 }

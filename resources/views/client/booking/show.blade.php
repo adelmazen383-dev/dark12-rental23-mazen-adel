@@ -1,6 +1,7 @@
 @extends('layouts.client')
 
 @section('title', 'تفاصيل الحجز - ' . $booking->reference_number)
+@section('meta_robots', 'noindex, nofollow')
 
 @section('content')
 <div class="space-y-6 max-w-xl mx-auto">

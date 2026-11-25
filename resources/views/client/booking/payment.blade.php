@@ -1,6 +1,7 @@
 @extends('layouts.client')
 
 @section('title', 'التحويل البنكي ورفع الإيصال - حجز ' . $booking->reference_number)
+@section('meta_robots', 'noindex, nofollow')
 
 @section('content')
 <div class="space-y-6">

@@ -4,9 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="manifest" href="/manifest.json">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/png" href="{{ asset('images/icon-192.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/icon-192.png') }}">
+    <link rel="manifest" href="{{ url('/manifest.json') }}">
     <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="دارك للإيجار">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>@yield('title', 'بوابة المستثمر') - أجنحة البرج</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -25,6 +30,7 @@
         $wallet = $investor?->wallet;
         $subscription = $investor?->activeSubscription;
         $unreadChats = $investor ? \App\Models\Message::whereIn('conversation_id', $investor->conversations()->pluck('id'))->whereIn('sender_type', ['customer', 'admin'])->where('is_read_by_investor', false)->count() : 0;
+        $pushSubsCount = $investor ? \App\Models\PushSubscription::where('investor_id', $investor->id)->count() : 0;
     @endphp
 
     <!-- Sidebar -->
@@ -159,12 +165,69 @@
             <!-- Instant Phone Notifications Button & Actions -->
             <div class="flex items-center gap-2 sm:gap-3">
 
-                <!-- Live Bell Notifications Button -->
-                <button onclick="handleBellClick()" type="button" class="relative p-2 text-slate-600 hover:text-emerald-600 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 transition" title="الإشعارات الفورية (اضغط للاختبار أو التفعيل)">
-                    <i id="navBellIcon" class="fa-solid fa-bell text-base"></i>
-                    <span id="navAlertPulse" class="hidden absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-                    <span id="navAlertDot" class="hidden absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                </button>
+                <!-- Backdrop overlay on mobile -->
+                <div id="notifBackdrop" onclick="toggleNotifPanel()" class="hidden fixed inset-0 bg-slate-950/40 backdrop-blur-xs z-40 transition-opacity"></div>
+
+                <!-- Live Bell Notifications Button + Control Panel -->
+                <div class="relative" id="notifBellWrapper">
+                    <button onclick="toggleNotifPanel()" type="button" class="relative p-2 text-slate-600 hover:text-emerald-600 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 transition" title="إعدادات واختبار إشعارات الحجز">
+                        <i id="navBellIcon" class="fa-solid fa-bell text-base"></i>
+                        <span id="navAlertPulse" class="hidden absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+                        <span id="navAlertDot" class="hidden absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+                    </button>
+
+                    <!-- Notifications Control Popover (Fully centered on mobile, never cut off) -->
+                    <div id="notifSettingsPanel" class="hidden fixed inset-x-3 top-20 sm:top-full sm:mt-2 sm:inset-x-auto sm:left-0 sm:right-auto sm:absolute w-auto sm:w-84 max-w-sm mx-auto bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 z-50 text-right space-y-3.5 transition-all">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                            <span class="font-black text-xs text-slate-900 flex items-center gap-1.5">
+                                <i class="fa-solid fa-bell text-emerald-600"></i>
+                                <span>إشعارات الحجوزات الفورية</span>
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <span id="pushDevicesBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
+                                    <span id="pushDevicesCount">{{ $pushSubsCount }}</span> متصل
+                                </span>
+                                <button type="button" onclick="toggleNotifPanel()" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition sm:hidden" title="إغلاق">
+                                    <i class="fa-solid fa-xmark text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="pushPanelStatus" class="text-xs rounded-xl p-3 bg-slate-50 border border-slate-200 text-slate-700 leading-relaxed">
+                            جاري فحص حالة الإشعارات على هذا الهاتف...
+                        </div>
+
+                        <div class="space-y-2" id="pushActionsWrapper">
+                            <!-- Button shown ONLY when permission is NOT granted -->
+                            <button id="panelEnablePushBtn" onclick="enablePushNotifications(false)" type="button" class="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm">
+                                <i class="fa-solid fa-bell"></i>
+                                <span>تفعيل واستقبال الإشعارات (لمرة واحدة)</span>
+                            </button>
+
+                            <!-- Button shown when permission IS granted: Immediate test -->
+                            <button id="panelTestPushBtn" onclick="sendServerTestPush(0)" type="button" class="hidden w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm">
+                                <i class="fa-solid fa-paper-plane text-amber-400"></i>
+                                <span>🔔 إرسال إشعار فوري للتجربة</span>
+                            </button>
+
+                            <!-- Button shown when permission IS granted: 5-second delayed test (to test while website is closed) -->
+                            <button id="panelTestDelayedPushBtn" onclick="sendServerTestPush(5)" type="button" class="hidden w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition flex items-center justify-center gap-2 shadow-sm">
+                                <i class="fa-solid fa-clock"></i>
+                                <span>⏰ تجربة الإشعار بعد 5 ثوانٍ (أغلق الموقع وجرب)</span>
+                            </button>
+                        </div>
+
+                        <div id="pushTroubleshootLink" class="hidden text-center pt-1 border-t border-slate-100">
+                            <button type="button" onclick="syncPushSubscription(true)" class="text-[10px] text-slate-400 hover:text-emerald-700 underline transition">
+                                إعادة مزامنة هذا الهاتف مع السيرفر
+                            </button>
+                        </div>
+
+                        <p class="text-[10px] text-slate-400 leading-relaxed text-center">
+                            تصلك تنبيهات الحجوزات ورسائل النزلاء بصوت واهتزاز حتى لو كان المتصفح مغلقاً.
+                        </p>
+                    </div>
+                </div>
 
                 <!-- Live Unread Chat Pill -->
                 <a href="{{ route('investor.chats.index') }}" class="relative p-2 text-slate-600 hover:text-emerald-600 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 transition" title="المحادثات">
@@ -269,7 +332,40 @@
         </div>
 
         <!-- Content -->
-        <main class="flex-1 p-4 md:p-8">
+        <main class="flex-1 p-4 md:p-8 space-y-5">
+            <!-- Push Activation Banner (shown once ONLY if permission is default and not dismissed) -->
+            <div id="pushEnableBanner" class="hidden rounded-2xl bg-gradient-to-l from-emerald-50 to-teal-50 border border-emerald-200 p-3.5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm flex-shrink-0 shadow-xs">
+                        <i class="fa-solid fa-bell"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-xs text-slate-900">تفعيل إشعارات الحجوزات والرسائل الفورية</h4>
+                        <p class="text-[11px] text-slate-600 mt-0.5">
+                            لتصلك طلبات الإيجار ورسائل النزلاء بصوت واهتزاز فورياً حتى لو كان المتصفح مغلقاً.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto">
+                    <button onclick="enablePushNotifications(false)" type="button" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5">
+                        <i class="fa-solid fa-check"></i>
+                        <span>تفعيل لمرة واحدة</span>
+                    </button>
+                    <button onclick="dismissPushBanner()" type="button" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition" title="إخفاء">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Blocked Notifications Hint -->
+            <div id="pushBlockedBanner" class="hidden rounded-2xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-900 flex items-start gap-3">
+                <i class="fa-solid fa-bell-slash text-rose-600 text-base flex-shrink-0 mt-0.5"></i>
+                <div>
+                    <h4 class="font-black text-rose-950">الإشعارات محظورة في إعدادات المتصفح حالياً</h4>
+                    <p class="mt-0.5 leading-relaxed text-[11px]">لكي تصلك تنبيهات الحجوزات والموقع مغلق، اضغط على أيقونة الإعدادات بجانب رابط الموقع في المتصفح واختر <strong>السماح بالإشعارات (Allow)</strong> ثم أعد تحميل الصفحة.</p>
+                </div>
+            </div>
+
             @yield('content')
         </main>
     </div>
@@ -303,90 +399,360 @@
         </div>
     </div>
 
-    <!-- Enable Native Notifications Button (shown once) -->
+    <!-- Enable Native Notifications Button (shown once when default) -->
     <div id="notifPermBtn" class="fixed bottom-5 left-5 z-40 hidden">
-        <button onclick="requestNotifPermission()" type="button"
-            class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white text-xs font-bold shadow-xl transition-all">
-            <i class="fa-solid fa-bell-slash text-amber-400"></i>
+        <button onclick="enablePushNotifications(true)" type="button"
+            class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 border border-emerald-400 text-white text-xs font-black shadow-xl transition-all">
+            <i class="fa-solid fa-bell text-amber-300 animate-pulse"></i>
             <span>فعّل الإشعارات الفورية</span>
         </button>
     </div>
 
-    <!-- Live Alert Polling & Notification Engine -->
+    <!-- Live Alert Polling & Background Web Push Engine -->
     <script>
+        const SW_URL = @json(url('/sw.js'));
+        const SW_SCOPE = @json(rtrim(parse_url(url('/'), PHP_URL_PATH) ?: '', '/') . '/');
+        const VAPID_KEY_URL = @json(route('investor.api.vapid-key'));
+        const PUSH_SUBSCRIBE_URL = @json(route('investor.api.push-subscribe'));
+        const TEST_PUSH_URL = @json(route('investor.api.test-push'));
+        const UNREAD_ALERTS_URL = @json(route('investor.api.unread-alerts'));
+        const LOGO_ICON_URL = @json(asset('images/icon-192.png'));
+        const CSRF_TOKEN = @json(csrf_token());
+
         let lastSeenMessageId = null;
         let lastSeenBookingId = null;
+        let lastSeenInspectionId = null;
         let isPolling = false;
         let chimeUnlocked = false;
         let toastTimeout = null;
+        let swRegistration = null;
+        let deferredInstallPrompt = null;
+
+        // Capture Android/Desktop PWA install prompt
+        window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            const b1 = document.getElementById('pwaInstallMenuBtn');
+            const b2 = document.getElementById('pwaBannerInstallBtn');
+            if (b1) b1.classList.remove('hidden');
+            if (b2) b2.classList.remove('hidden');
+        });
+
+        async function triggerPwaInstall() {
+            if (!deferredInstallPrompt) return;
+            deferredInstallPrompt.prompt();
+            await deferredInstallPrompt.userChoice;
+            deferredInstallPrompt = null;
+            const b1 = document.getElementById('pwaInstallMenuBtn');
+            const b2 = document.getElementById('pwaBannerInstallBtn');
+            if (b1) b1.classList.add('hidden');
+            if (b2) b2.classList.add('hidden');
+        }
+
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        function uint8ArraysEqual(a, b) {
+            if (!a || !b || a.byteLength !== b.byteLength) return false;
+            const viewA = new Uint8Array(a);
+            const viewB = new Uint8Array(b);
+            for (let i = 0; i < viewA.length; i++) {
+                if (viewA[i] !== viewB[i]) return false;
+            }
+            return true;
+        }
+
+        function isIosBrowserNotStandalone() {
+            const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isStandalone = window.navigator.standalone === true ||
+                window.matchMedia('(display-mode: standalone)').matches;
+            return isIos && !isStandalone;
+        }
 
         // ─── Init on page load ───────────────────────────────────
-        document.addEventListener('DOMContentLoaded', function () {
-            // Register Service Worker for PWA & Native Push capabilities
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js').catch(function () {});
-            }
-
-            // Check Native Notification permission
-            if ('Notification' in window) {
-                if (Notification.permission === 'default') {
-                    const btn = document.getElementById('notifPermBtn');
-                    if (btn) btn.classList.remove('hidden');
-                } else if (Notification.permission === 'granted') {
-                    const dot = document.getElementById('navAlertDot');
-                    if (dot) dot.classList.remove('hidden');
-                }
-            }
-
-            // Audio unlock on user touch
+        document.addEventListener('DOMContentLoaded', async function () {
+            // Audio unlock on user gesture
             document.addEventListener('click', function unlockAudio() {
                 chimeUnlocked = true;
                 document.removeEventListener('click', unlockAudio);
             }, { once: true });
 
-            // Start polling unread alerts (first check at 1.5s then every 5s)
-            setTimeout(pollUnreadAlerts, 1500);
+            // Close popover when clicking outside
+            document.addEventListener('click', function (e) {
+                const wrapper = document.getElementById('notifBellWrapper');
+                const panel = document.getElementById('notifSettingsPanel');
+                if (wrapper && panel && !wrapper.contains(e.target)) {
+                    panel.classList.add('hidden');
+                }
+            });
+
+            // Register Service Worker with dynamic scope
+            if ('serviceWorker' in navigator) {
+                try {
+                    swRegistration = await navigator.serviceWorker.register(SW_URL, { scope: SW_SCOPE });
+                    await navigator.serviceWorker.ready;
+
+                    // Optional periodicSync fallback on Android Chrome
+                    if ('periodicSync' in swRegistration) {
+                        try {
+                            const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
+                            if (status.state === 'granted') {
+                                await swRegistration.periodicSync.register('dark-poll-messages', {
+                                    minInterval: 15 * 60 * 1000
+                                });
+                            }
+                        } catch (_) {}
+                    }
+                } catch (err) {
+                    console.warn('SW registration error:', err);
+                }
+            }
+
+            refreshPushUiAndSync();
+
+            // Start polling unread alerts (first check at 1.2s then every 5s while tab open)
+            setTimeout(pollUnreadAlerts, 1200);
             setInterval(pollUnreadAlerts, 5000);
         });
 
-        // ─── Permission handler ──────────────────────────────────
-        function requestNotifPermission() {
-            if (!('Notification' in window)) {
-                triggerAlert('تنبيه المتصفح', 'المتصفح لا يدعم إشعارات النظام، لكن التنبيهات الصوتية والشاشية تعمل دائماً.', '#', 'system');
+        async function refreshPushUiAndSync() {
+            const permBtn = document.getElementById('notifPermBtn');
+            const enableBanner = document.getElementById('pushEnableBanner');
+            const blockedBanner = document.getElementById('pushBlockedBanner');
+            const iosBanner = document.getElementById('iosPwaBanner');
+            const dot = document.getElementById('navAlertDot');
+            const statusBox = document.getElementById('pushPanelStatus');
+            const enablePanelBtn = document.getElementById('panelEnablePushBtn');
+
+            if (isIosBrowserNotStandalone() && !('Notification' in window && 'PushManager' in window)) {
+                if (iosBanner) iosBanner.classList.remove('hidden');
+                if (statusBox) {
+                    statusBox.innerHTML = '📱 على الآيفون: أضف الموقع للشاشة الرئيسية أولاً لتفعيل إشعارات الخلفية.';
+                    statusBox.className = 'text-[11px] rounded-xl p-2.5 bg-sky-50 border border-sky-200 text-sky-900 leading-relaxed';
+                }
                 return;
             }
-            Notification.requestPermission().then(function (perm) {
-                const btn = document.getElementById('notifPermBtn');
-                if (perm === 'granted') {
-                    if (btn) btn.classList.add('hidden');
-                    const dot = document.getElementById('navAlertDot');
-                    if (dot) dot.classList.remove('hidden');
-                    triggerAlert('🔔 تم تفعيل إشعارات الجوال الفورية!', 'ستصلك التنبيهات مع نغمة واهتزاز أولاً بأول.', '#', 'system');
-                } else if (btn) {
-                    btn.classList.add('hidden');
-                }
-            });
-        }
 
-        // ─── Bell Click Handler (Quick Test / Enable) ────────────
-        function handleBellClick() {
-            if ('Notification' in window && Notification.permission === 'default') {
-                requestNotifPermission();
-            } else {
-                triggerAlert('🔔 اختبار الإشعارات الفورية', 'نظام التنبيهات الصوتية والاهتزاز يعمل بنجاح على هاتفك.', '#', 'system');
+            if (!('Notification' in window) || !('PushManager' in window)) {
+                if (statusBox) {
+                    statusBox.innerHTML = '⚠️ هذا المتصفح لا يدعم إشعارات الخلفية (Web Push)، لكن التنبيهات المباشرة داخل الصفحة تعمل.';
+                }
+                return;
+            }
+
+            if (Notification.permission === 'granted') {
+                if (permBtn) permBtn.classList.add('hidden');
+                if (enableBanner) enableBanner.classList.add('hidden');
+                if (blockedBanner) blockedBanner.classList.add('hidden');
+                if (dot) dot.classList.remove('hidden');
+                if (enablePanelBtn) enablePanelBtn.innerHTML = '<i class="fa-solid fa-rotate"></i><span>تحديث ربط هذا الجهاز بالإشعارات</span>';
+
+                const ok = await syncPushSubscription(false);
+                if (statusBox) {
+                    if (ok) {
+                        statusBox.innerHTML = '✅ <strong>هذا الجهاز مربوط ومفعّل:</strong> ستصلك إشعارات الحجز والمحادثات فوراً حتى لو المتصفح مغلق.';
+                        statusBox.className = 'text-[11px] rounded-xl p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-900 leading-relaxed';
+                    } else {
+                        statusBox.innerHTML = '⚠️ تم السماح بالإشعارات لكن لم يكتمل ربط الجهاز بعد. اضغط «تحديث ربط هذا الجهاز».';
+                        statusBox.className = 'text-[11px] rounded-xl p-2.5 bg-amber-50 border border-amber-200 text-amber-900 leading-relaxed';
+                    }
+                }
+            } else if (Notification.permission === 'default') {
+                if (permBtn) permBtn.classList.remove('hidden');
+                if (enableBanner) enableBanner.classList.remove('hidden');
+                if (blockedBanner) blockedBanner.classList.add('hidden');
+                if (dot) dot.classList.add('hidden');
+                if (statusBox) {
+                    statusBox.innerHTML = '⚠️ <strong>الإشعارات غير مفعلة على هذا الجهاز.</strong> اضغط الزر بالأسفل لربط جهازك واستقبال الطلبات فوراً.';
+                    statusBox.className = 'text-[11px] rounded-xl p-2.5 bg-amber-50 border border-amber-200 text-amber-950 leading-relaxed';
+                }
+            } else if (Notification.permission === 'denied') {
+                if (permBtn) permBtn.classList.add('hidden');
+                if (enableBanner) enableBanner.classList.add('hidden');
+                if (blockedBanner) blockedBanner.classList.remove('hidden');
+                if (dot) dot.classList.add('hidden');
+                if (statusBox) {
+                    statusBox.innerHTML = '🚫 <strong>الإشعارات محظورة من إعدادات المتصفح.</strong> يرجى السماح بها من إعدادات الموقع بجانب رابط المتصفح.';
+                    statusBox.className = 'text-[11px] rounded-xl p-2.5 bg-rose-50 border border-rose-200 text-rose-900 leading-relaxed';
+                }
             }
         }
 
-        // ─── Poll backend ────────────────────────────────────────
+        // ─── Subscribe to Web Push (VAPID) and save endpoint to backend ─
+        async function syncPushSubscription(showFeedback) {
+            try {
+                if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+
+                const reg = swRegistration || await navigator.serviceWorker.ready;
+                if (!reg || !reg.pushManager) return false;
+
+                const keyRes = await fetch(VAPID_KEY_URL, { headers: { 'Accept': 'application/json' } });
+                if (!keyRes.ok) return false;
+                const keyData = await keyRes.json();
+                if (!keyData.publicKey) return false;
+
+                const appServerKey = urlBase64ToUint8Array(keyData.publicKey);
+                let sub = await reg.pushManager.getSubscription();
+
+                // Re-subscribe if server VAPID key changed
+                if (sub && sub.options && sub.options.applicationServerKey) {
+                    if (!uint8ArraysEqual(sub.options.applicationServerKey, appServerKey.buffer)) {
+                        await sub.unsubscribe();
+                        sub = null;
+                    }
+                }
+
+                if (!sub) {
+                    sub = await reg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: appServerKey
+                    });
+                }
+
+                const subJson = sub.toJSON();
+                if (!subJson.endpoint || !subJson.keys || !subJson.keys.p256dh || !subJson.keys.auth) {
+                    return false;
+                }
+
+                const encoding = (window.PushManager && PushManager.supportedContentEncodings && PushManager.supportedContentEncodings[0]) || 'aes128gcm';
+
+                const saveRes = await fetch(PUSH_SUBSCRIBE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': CSRF_TOKEN
+                    },
+                    body: JSON.stringify({
+                        endpoint: subJson.endpoint,
+                        keys: subJson.keys,
+                        contentEncoding: encoding
+                    })
+                });
+
+                if (!saveRes.ok) return false;
+                const saveData = await saveRes.json();
+                const countEl = document.getElementById('pushDevicesCount');
+                if (countEl && typeof saveData.subscriptions_count === 'number') {
+                    countEl.innerText = saveData.subscriptions_count;
+                }
+                return true;
+            } catch (err) {
+                console.warn('WebPush sync failed:', err);
+                if (showFeedback) {
+                    showToast('تعذر ربط الجهاز', 'تأكد من عدم حظر الإشعارات أو تفعيل وضع التصفح الخاص (Incognito).', '#', 'system');
+                }
+                return false;
+            }
+        }
+
+        // ─── User-triggered Enable + Subscribe + Optional Server Test ───
+        async function enablePushNotifications(sendTestAfter) {
+            playChime();
+            vibratePhone();
+
+            if (!('Notification' in window)) {
+                if (isIosBrowserNotStandalone()) {
+                    showToast('تثبيت على الآيفون', 'اضغط زر المشاركة ⬆ ثم اختر «إضافة إلى الشاشة الرئيسية» لتفعيل الإشعارات في الخلفية.', '#', 'system');
+                } else {
+                    showToast('تنبيه المتصفح', 'المتصفح لا يدعم إشعارات النظام، لكن التنبيهات المباشرة تعمل.', '#', 'system');
+                }
+                return;
+            }
+
+            let perm = Notification.permission;
+            if (perm !== 'granted') {
+                perm = await Notification.requestPermission();
+            }
+
+            if (perm === 'granted') {
+                const synced = await syncPushSubscription(true);
+                await refreshPushUiAndSync();
+
+                if (synced && sendTestAfter) {
+                    await sendServerTestPush(true);
+                } else if (synced) {
+                    showToast('🔔 تم ربط الجهاز بنجاح!', 'ستصلك إشعارات الحجوزات والمحادثات حتى والموقع مغلق.', '#', 'system');
+                }
+            } else {
+                await refreshPushUiAndSync();
+                showToast('لم يتم منح الصلاحية', 'يرجى السماح بالإشعارات من إعدادات المتصفح ليصلك كل طلب حجز فوراً.', '#', 'system');
+            }
+        }
+
+        // ─── Trigger real server WebPush test ──────────────────────────
+        async function sendServerTestPush(silentIfOk) {
+            const btn = document.getElementById('panelTestPushBtn');
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>جاري إرسال إشعار من السيرفر...</span>';
+            }
+            try {
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    await syncPushSubscription(false);
+                }
+                const res = await fetch(TEST_PUSH_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': CSRF_TOKEN
+                    }
+                });
+                const data = await res.json();
+                const countEl = document.getElementById('pushDevicesCount');
+                if (countEl && typeof data.subscriptions_count === 'number') {
+                    countEl.innerText = data.subscriptions_count;
+                }
+                if (data.success) {
+                    showToast('🚀 تم إرسال إشعار الخلفية!', data.message || 'تحقق من شريط الإشعارات على جهازك الآن.', '#', 'system');
+                } else {
+                    showToast('⚠️ تنبيه الإشعارات', data.message || 'يرجى تفعيل الإشعارات أولاً.', '#', 'system');
+                }
+            } catch (err) {
+                showToast('❌ خطأ في الاتصال', 'تعذر إرسال الإشعار التجريبي الآن، حاول مرة أخرى.', '#', 'system');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                }
+            }
+        }
+
+        // ─── Bell Popover Toggle ───────────────────────────────────────
+        function toggleNotifPanel() {
+            const panel = document.getElementById('notifSettingsPanel');
+            if (!panel) return;
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) {
+                refreshPushUiAndSync();
+            }
+        }
+
+        // ─── Poll backend (live alerts while tab is open) ───────────────
         async function pollUnreadAlerts() {
             if (isPolling) return;
             isPolling = true;
             try {
-                const res = await fetch("{{ route('investor.api.unread-alerts') }}", {
+                const res = await fetch(UNREAD_ALERTS_URL, {
                     headers: { 'Accept': 'application/json' }
                 });
                 if (!res.ok) return;
                 const data = await res.json();
+
+                const countEl = document.getElementById('pushDevicesCount');
+                if (countEl && typeof data.push_subscriptions_count === 'number') {
+                    countEl.innerText = data.push_subscriptions_count;
+                }
 
                 // Update navbar unread badge
                 const badge = document.getElementById('navUnreadChatBadge');
@@ -402,7 +768,7 @@
                 // Show alert pulse on bell if there's any active alert
                 const pulse = document.getElementById('navAlertPulse');
                 if (pulse) {
-                    if (data.unread_messages_count > 0 || (data.unread_bookings_count && data.unread_bookings_count > 0)) {
+                    if (data.unread_messages_count > 0 || (data.unread_bookings_count && data.unread_bookings_count > 0) || (data.recent_inspections_count && data.recent_inspections_count > 0)) {
                         pulse.classList.remove('hidden');
                     } else {
                         pulse.classList.add('hidden');
@@ -426,13 +792,26 @@
                 if (data.latest_booking && data.latest_booking.id !== lastSeenBookingId) {
                     if (lastSeenBookingId !== null) {
                         triggerAlert(
-                            `🎉 حجز جديد #${data.latest_booking.reference}`,
+                            `🎉 طلب حجز جديد #${data.latest_booking.reference}`,
                             `${data.latest_booking.customer_name} | ${data.latest_booking.total_amount} ريال | شقة ${data.latest_booking.apartment_number}`,
                             data.latest_booking.url,
                             'booking'
                         );
                     }
                     lastSeenBookingId = data.latest_booking.id;
+                }
+
+                // New inspection request notification
+                if (data.latest_inspection && data.latest_inspection.id !== lastSeenInspectionId) {
+                    if (lastSeenInspectionId !== null) {
+                        triggerAlert(
+                            `👁 طلب معاينة لشقة ${data.latest_inspection.apartment_number}`,
+                            `${data.latest_inspection.customer_name} | ${data.latest_inspection.customer_phone}`,
+                            data.latest_inspection.url,
+                            'booking'
+                        );
+                    }
+                    lastSeenInspectionId = data.latest_inspection.id;
                 }
             } catch (_) { /* ignore network error */ } finally {
                 isPolling = false;
@@ -444,34 +823,38 @@
             playChime();
             vibratePhone();
 
-            // Native notification (Chrome Desktop & Mobile)
+            // Native notification via ServiceWorker first (works reliably on Android & Desktop), fallback to new Notification()
             if ('Notification' in window && Notification.permission === 'granted') {
-                try {
-                    const n = new Notification(title, {
-                        body: message,
-                        icon: '/images/dark-logo.jpg',
-                        badge: '/images/dark-logo.jpg',
-                        vibrate: [200, 100, 200, 100, 300],
-                        tag: type + '-' + Date.now(),
-                        renotify: true,
+                const notifOptions = {
+                    body: message,
+                    icon: LOGO_ICON_URL,
+                    badge: LOGO_ICON_URL,
+                    vibrate: [200, 100, 200, 100, 300],
+                    tag: type + '-' + Date.now(),
+                    renotify: true,
+                    data: { url: url }
+                };
+
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.ready.then(reg => {
+                        return reg.showNotification(title, notifOptions);
+                    }).catch(() => {
+                        try {
+                            const n = new Notification(title, notifOptions);
+                            n.onclick = () => {
+                                window.focus();
+                                if (url && url !== '#') window.location.href = url;
+                            };
+                        } catch (_) {}
                     });
-                    n.onclick = () => {
-                        window.focus();
-                        if (url && url !== '#') window.location.href = url;
-                    };
-                } catch (e) {
-                    // Mobile Android Chrome requires ServiceWorkerRegistration
-                    if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
-                        navigator.serviceWorker.ready.then(reg => {
-                            reg.showNotification(title, {
-                                body: message,
-                                icon: '/images/dark-logo.jpg',
-                                badge: '/images/dark-logo.jpg',
-                                vibrate: [200, 100, 200, 100, 300],
-                                data: { url: url }
-                            });
-                        }).catch(() => {});
-                    }
+                } else {
+                    try {
+                        const n = new Notification(title, notifOptions);
+                        n.onclick = () => {
+                            window.focus();
+                            if (url && url !== '#') window.location.href = url;
+                        };
+                    } catch (_) {}
                 }
             }
 

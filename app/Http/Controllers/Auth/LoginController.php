@@ -81,7 +81,7 @@ class LoginController extends Controller
                 'user_agent' => $request->userAgent(),
             ]);
 
-            // If "remember me" ticked, store long-lived cookies (1 year) for Vercel serverless compat
+            // If "remember me" ticked, store long-lived cookies (1 year)
             if ($remember) {
                 // Generate & store a remember token in DB
                 $token = Str::random(60);

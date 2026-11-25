@@ -1,22 +1,40 @@
 {
+  "id": "./investor",
   "name": "منصة دَارِك لتنظيم الإيجار",
   "short_name": "دارك للإيجار",
-  "description": "بوابة المستثمر وتأجير الشقق الفندقية والسكنية الفاخرة",
-  "start_url": "/investor",
+  "description": "بوابة المستثمر وتأجير الشقق الفندقية والسكنية الفاخرة في السعودية",
+  "start_url": "./investor",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#090d16",
-  "theme_color": "#090d16",
+  "dir": "rtl",
+  "lang": "ar",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/client-entry-qr.png",
+      "src": "./images/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "/client-entry-qr.png",
+      "src": "./images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./images/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

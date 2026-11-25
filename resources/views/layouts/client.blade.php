@@ -4,7 +4,103 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'منصة دارك لتنظيم الإيجار - بوابتك الآمنة لحجز الوحدات')</title>
+
+    {{-- ===================== SEO Core ===================== --}}
+    <title>@yield('title', 'منصة دارك لتنظيم الإيجار | حجز شقق مفروشة ووحدات سكنية في السعودية')</title>
+    <meta name="description" content="@yield('meta_description', 'منصة دارك لتنظيم الإيجار - احجز شقتك في السعودية بأمان وسهولة. شقق مفروشة وأجنحة سكنية للإيجار اليومي والشهري والسنوي في الرياض وجدة والدمام وجميع مدن المملكة مع توثيق رقمي وتواصل مباشر.')">
+    <meta name="keywords"    content="@yield('meta_keywords', 'حجز شقق السعودية, إيجار شقق الرياض, شقق مفروشة جدة, وحدات سكنية الدمام, شقق فندقية الخبر, إيجار شقق مكة, منصة دارك, دارك لتنظيم الإيجار, حجز شقق اونلاين, إيجار سكني السعودية, شقق للإيجار, إيجار شهري, إيجار سنوي')">
+    <meta name="robots"      content="@yield('meta_robots', 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1')">
+    <meta name="author"      content="منصة دارك لتنظيم الإيجار">
+    <meta name="language"    content="ar">
+    <meta name="geo.region"  content="SA">
+    <meta name="geo.placename" content="Saudi Arabia">
+    <meta name="geo.country" content="SA">
+    <meta name="ICBM"        content="24.7136, 46.6753">
+
+    {{-- ===================== Canonical ===================== --}}
+    <link rel="canonical" href="@yield('canonical', url()->current())">
+
+    {{-- ===================== Open Graph (Facebook / WhatsApp / LinkedIn) ===================== --}}
+    <meta property="og:type"        content="@yield('og_type', 'website')">
+    <meta property="og:locale"      content="ar_SA">
+    <meta property="og:site_name"   content="منصة دارك لتنظيم الإيجار">
+    <meta property="og:title"       content="@yield('og_title', 'منصة دارك لتنظيم الإيجار - حجز شقق في السعودية بأمان')">
+    <meta property="og:description" content="@yield('og_description', 'احجز شقتك في الرياض أو جدة أو الدمام أو أي مدينة سعودية بأمان وسهولة. تواصل مباشر مع الملاك وتوثيق رقمي كامل.')">
+    <meta property="og:url"         content="@yield('canonical', url()->current())">
+    <meta property="og:image"       content="@yield('og_image', asset('images/dark-logo.jpg'))">
+    <meta property="og:image:alt"   content="@yield('og_image_alt', 'منصة دارك لتنظيم الإيجار في السعودية')">
+
+    {{-- ===================== Twitter Card ===================== --}}
+    <meta name="twitter:card"        content="summary_large_image">
+    <meta name="twitter:title"       content="@yield('twitter_title', 'منصة دارك لتنظيم الإيجار - حجز شقق في السعودية')">
+    <meta name="twitter:description" content="@yield('twitter_description', 'احجز شقتك بأمان في جميع مدن السعودية عبر منصة دارك لتنظيم الإيجار.')">
+    <meta name="twitter:image"       content="@yield('og_image', asset('images/dark-logo.jpg'))">
+
+    {{-- ===================== Favicon & PWA ===================== --}}
+    <link rel="icon" type="image/jpeg" href="{{ asset('images/dark-logo.jpg') }}">
+    <link rel="apple-touch-icon"       href="{{ asset('images/dark-logo.jpg') }}">
+    <link rel="manifest"               href="{{ url('/manifest.json') }}">
+    <meta name="theme-color"           content="#F59E0B">
+    <meta name="mobile-web-app-capable"       content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title"   content="منصة دارك">
+
+    {{-- ===================== Sitemap reference ===================== --}}
+    <link rel="sitemap" type="application/xml" href="{{ url('/sitemap.xml') }}">
+
+    {{-- ===================== JSON-LD: RealEstateAgent + WebSite ===================== --}}
+    @php
+        $globalSchemas = [
+            [
+                '@context' => 'https://schema.org',
+                '@type' => 'RealEstateAgent',
+                'name' => 'منصة دارك لتنظيم الإيجار',
+                'alternateName' => 'منصة دارك',
+                'description' => 'منظومة عقارية متكاملة لحجز الشقق المفروشة والإيجارات اليومية والشهرية والسنوية في جميع مدن المملكة العربية السعودية، وإدارة وتشغيل العقارات للمستثمرين.',
+                'url' => url('/'),
+                'logo' => asset('images/dark-logo.jpg'),
+                'image' => asset('images/dark-logo.jpg'),
+                'inLanguage' => 'ar',
+                'areaServed' => [
+                    ['@type' => 'City', 'name' => 'الرياض', 'sameAs' => 'https://www.wikidata.org/wiki/Q3692'],
+                    ['@type' => 'City', 'name' => 'جدة', 'sameAs' => 'https://www.wikidata.org/wiki/Q131491'],
+                    ['@type' => 'City', 'name' => 'الدمام', 'sameAs' => 'https://www.wikidata.org/wiki/Q204163'],
+                    ['@type' => 'City', 'name' => 'مكة المكرمة'],
+                    ['@type' => 'City', 'name' => 'المدينة المنورة'],
+                    ['@type' => 'City', 'name' => 'الخبر'],
+                    ['@type' => 'City', 'name' => 'الطائف'],
+                    ['@type' => 'City', 'name' => 'أبها'],
+                    ['@type' => 'Country', 'name' => 'المملكة العربية السعودية', 'sameAs' => 'https://www.wikidata.org/wiki/Q851'],
+                ],
+                'potentialAction' => [
+                    '@type' => 'SearchAction',
+                    'target' => url('/') . '?apartment_number={search_term_string}',
+                    'query-input' => 'required name=search_term_string',
+                ],
+            ],
+            [
+                '@context' => 'https://schema.org',
+                '@type' => 'WebSite',
+                'name' => 'منصة دارك لتنظيم الإيجار',
+                'alternateName' => 'منصة دارك',
+                'url' => url('/'),
+                'inLanguage' => 'ar',
+                'potentialAction' => [
+                    '@type' => 'SearchAction',
+                    'target' => url('/') . '?apartment_number={search_term_string}',
+                    'query-input' => 'required name=search_term_string',
+                ],
+            ],
+        ];
+    @endphp
+    <script type="application/ld+json">
+    {!! json_encode($globalSchemas, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+    </script>
+    @yield('structured_data')
+
+    {{-- ===================== Extra head ===================== --}}
+    @yield('head')
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>

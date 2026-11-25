@@ -73,6 +73,9 @@ class BookingController extends Controller
             'total' => $totalAmount
         ]);
 
+        // Alert investor immediately (including background Web Push) when a client requests to rent
+        NotificationService::notifyNewBooking($booking);
+
         return redirect()->route('client.booking.payment', $booking->reference_number)
             ->with('success', 'تم تسجيل اختيار الشقة وتفاصيل الحجز بنجاح. يرجى استكمال التحويل البنكي ورفع الإيصال.');
     }

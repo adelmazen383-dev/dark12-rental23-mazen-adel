@@ -209,7 +209,8 @@
             <div class="pt-3 border-t">
                 <span class="text-xs font-bold text-slate-700 block mb-2">وثيقة الهوية المرفوعة:</span>
                 @php
-                    $idDocUrl = $investor->id_image ? asset('storage/' . $investor->id_image) : asset('images/id-default.svg');
+                    $idDocUrl = route('admin.investors.document', [$investor->id, 'id_image']);
+                    $isIdPdf = str_ends_with(strtolower($investor->id_image ?? ''), '.pdf');
                 @endphp
                 <div class="space-y-2">
                     <a href="{{ $idDocUrl }}" target="_blank" class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between hover:bg-amber-50 transition text-xs">
@@ -219,8 +220,16 @@
                         </span>
                         <i class="fa-solid fa-arrow-up-right-from-square text-slate-400"></i>
                     </a>
-                    <div class="rounded-xl overflow-hidden border border-slate-200 bg-slate-900 h-36">
-                        <img src="{{ $idDocUrl }}" alt="وثيقة الهوية" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='{{ asset('images/id-default.svg') }}';">
+                    <div class="rounded-xl overflow-hidden border border-slate-200 bg-slate-900 h-36 flex items-center justify-center">
+                        @if($isIdPdf)
+                            <div class="p-4 text-center">
+                                <i class="fa-solid fa-file-pdf text-rose-500 text-3xl mb-1"></i>
+                                <p class="text-xs text-white font-bold">وثيقة الهوية (ملف PDF)</p>
+                                <a href="{{ $idDocUrl }}" target="_blank" class="inline-block mt-2 px-3 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-[10px]">عرض وتنزيل PDF</a>
+                            </div>
+                        @else
+                            <img src="{{ $idDocUrl }}" alt="وثيقة الهوية" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='{{ asset('images/id-default.svg') }}';">
+                        @endif
                     </div>
                 </div>
             </div>
@@ -248,7 +257,8 @@
             <div class="pt-3 border-t">
                 <span class="text-xs font-bold text-slate-700 block mb-2">وثيقة الترخيص السياحي:</span>
                 @php
-                    $licDocUrl = $investor->license_image ? asset('storage/' . $investor->license_image) : asset('images/license-default.svg');
+                    $licDocUrl = route('admin.investors.document', [$investor->id, 'license_image']);
+                    $isLicPdf = str_ends_with(strtolower($investor->license_image ?? ''), '.pdf');
                 @endphp
                 <div class="space-y-2">
                     <a href="{{ $licDocUrl }}" target="_blank" class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between hover:bg-amber-50 transition text-xs">
@@ -258,8 +268,16 @@
                         </span>
                         <i class="fa-solid fa-arrow-up-right-from-square text-slate-400"></i>
                     </a>
-                    <div class="rounded-xl overflow-hidden border border-slate-200 bg-slate-900 h-40">
-                        <img src="{{ $licDocUrl }}" alt="وثيقة الترخيص" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='{{ asset('images/license-default.svg') }}';">
+                    <div class="rounded-xl overflow-hidden border border-slate-200 bg-slate-900 h-40 flex items-center justify-center">
+                        @if($isLicPdf)
+                            <div class="p-4 text-center">
+                                <i class="fa-solid fa-file-pdf text-rose-500 text-3xl mb-1"></i>
+                                <p class="text-xs text-white font-bold">وثيقة الترخيص السياحي (ملف PDF)</p>
+                                <a href="{{ $licDocUrl }}" target="_blank" class="inline-block mt-2 px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg text-[10px]">عرض وتنزيل PDF</a>
+                            </div>
+                        @else
+                            <img src="{{ $licDocUrl }}" alt="وثيقة الترخيص" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='{{ asset('images/license-default.svg') }}';">
+                        @endif
                     </div>
                 </div>
             </div>

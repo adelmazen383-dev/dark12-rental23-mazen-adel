@@ -1,6 +1,7 @@
 @extends('layouts.client')
 
 @section('title', 'محادثة المالك - شقة ' . $conversation->apartment->apartment_number)
+@section('meta_robots', 'noindex, nofollow')
 
 @section('content')
 <div class="max-w-2xl mx-auto px-2 sm:px-4 py-3 flex-1 flex flex-col h-[calc(100vh-5rem)]">
@@ -195,7 +196,7 @@
         const newText = prompt('تعديل الرسالة:', oldText);
         if (newText === null || newText.trim() === '' || newText === oldText) return;
 
-        fetch(`/chat/${token}/messages/${msgId}`, {
+        fetch(`{{ url('chat') }}/${token}/messages/${msgId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -219,7 +220,7 @@
     window.deleteMsg = function(msgId) {
         if (!confirm('هل أنت متأكد من حذف هذه الرسالة؟')) return;
 
-        fetch(`/chat/${token}/messages/${msgId}`, {
+        fetch(`{{ url('chat') }}/${token}/messages/${msgId}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',

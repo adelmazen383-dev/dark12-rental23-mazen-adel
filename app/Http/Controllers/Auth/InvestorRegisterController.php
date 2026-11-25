@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
 
 class InvestorRegisterController extends Controller
 {
@@ -95,6 +96,7 @@ class InvestorRegisterController extends Controller
             $idImagePath = 'investors/ids/id_doc.png';
             if ($request->hasFile('id_image')) {
                 try {
+                    Storage::disk('public')->makeDirectory('investors/ids');
                     $idImagePath = $request->file('id_image')->store('investors/ids', 'public');
                 } catch (\Throwable $e) {
                     Log::warning('id_image storage error: ' . $e->getMessage());
@@ -104,6 +106,7 @@ class InvestorRegisterController extends Controller
             $licenseImagePath = 'investors/licenses/license_doc.png';
             if ($request->hasFile('license_image')) {
                 try {
+                    Storage::disk('public')->makeDirectory('investors/licenses');
                     $licenseImagePath = $request->file('license_image')->store('investors/licenses', 'public');
                 } catch (\Throwable $e) {
                     Log::warning('license_image storage error: ' . $e->getMessage());
@@ -155,6 +158,7 @@ class InvestorRegisterController extends Controller
 
             // Upload Apartment Images safely
             if ($request->hasFile('apartment_images')) {
+                try { Storage::disk('public')->makeDirectory('apartments/images'); } catch (\Throwable) {}
                 foreach ($request->file('apartment_images') as $index => $image) {
                     try {
                         $imagePath = $image->store('apartments/images', 'public');

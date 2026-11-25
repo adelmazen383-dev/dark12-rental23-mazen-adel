@@ -56,6 +56,60 @@ Route::get('/manifest.json', function () {
 });
 Route::get('/apartments/{apartment}', [ClientApartmentController::class, 'show'])->name('client.apartments.show');
 
+// SEO: robots.txt dynamic
+Route::get('/robots.txt', function () {
+    $prefix = trim(parse_url(config('app.url'), PHP_URL_PATH) ?? '', '/');
+    $base = $prefix ? ('/' . $prefix) : '';
+    $content  = "User-agent: *\n";
+    $content .= "Allow: {$base}/\n";
+    $content .= "Disallow: {$base}/admin/\n";
+    $content .= "Disallow: {$base}/investor/\n";
+    $content .= "Disallow: {$base}/my-chats\n";
+    $content .= "Disallow: {$base}/chat/\n";
+    $content .= "Disallow: {$base}/booking/\n";
+    $content .= "Disallow: {$base}/login\n";
+    $content .= "Disallow: {$base}/register\n";
+    $content .= "Disallow: {$base}/investor/register\n\n";
+    $content .= "Sitemap: " . url('/sitemap.xml') . "\n";
+    return response($content, 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
+});
+
+// SEO: Dynamic Sitemap
+Route::get('/sitemap.xml', function () {
+    $apartments = \App\Models\Apartment::visibleToClients()->latest('updated_at')->get();
+
+    $urls = collect([
+        ['loc' => url('/'),          'priority' => '1.0', 'changefreq' => 'daily',   'lastmod' => now()->toAtomString()],
+        ['loc' => url('/about'),     'priority' => '0.7', 'changefreq' => 'monthly', 'lastmod' => now()->toAtomString()],
+        ['loc' => url('/services'),  'priority' => '0.8', 'changefreq' => 'monthly', 'lastmod' => now()->toAtomString()],
+    ]);
+
+    foreach ($apartments as $apt) {
+        $urls->push([
+            'loc'        => url('/apartments/' . $apt->id),
+            'priority'   => '0.9',
+            'changefreq' => 'daily',
+            'lastmod'    => $apt->updated_at ? $apt->updated_at->toAtomString() : now()->toAtomString(),
+        ]);
+    }
+
+    $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+    $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+    foreach ($urls as $url) {
+        $xml .= "  <url>\n";
+        $xml .= "    <loc>" . e($url['loc']) . "</loc>\n";
+        if (!empty($url['lastmod'])) {
+            $xml .= "    <lastmod>" . $url['lastmod'] . "</lastmod>\n";
+        }
+        $xml .= "    <changefreq>" . $url['changefreq'] . "</changefreq>\n";
+        $xml .= "    <priority>" . $url['priority'] . "</priority>\n";
+        $xml .= "  </url>\n";
+    }
+    $xml .= '</urlset>';
+
+    return response($xml, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
+})->name('sitemap');
+
 // Booking routes (protected with rate limiting)
 Route::post('/apartments/{apartment}/book', [ClientBookingController::class, 'store'])->name('client.booking.store')->middleware('throttle:10,1');
 Route::get('/booking/{booking:reference_number}', [ClientBookingController::class, 'show'])->name('client.booking.show');
@@ -112,6 +166,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
 
     // Investors
     Route::resource('investors', AdminInvestorController::class)->only(['index', 'show', 'edit', 'update']);
+    Route::get('investors/{investor}/documents/{type}', [AdminInvestorController::class, 'viewDocument'])->name('investors.document');
     Route::post('investors/{investor}/approve', [AdminInvestorController::class, 'approve'])->name('investors.approve');
     Route::post('investors/{investor}/reject', [AdminInvestorController::class, 'reject'])->name('investors.reject');
     Route::post('investors/{investor}/suspend', [AdminInvestorController::class, 'suspend'])->name('investors.suspend');

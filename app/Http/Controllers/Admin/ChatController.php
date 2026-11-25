@@ -82,6 +82,18 @@ class ChatController extends Controller
 
         AuditService::log('admin_sent_chat_message', $conversation, null, ['message' => $validated['message']]);
 
+        $conversation->loadMissing('apartment.investor');
+        $investor = $conversation->apartment?->investor ?? $conversation->investor;
+        if ($investor) {
+            \App\Services\WebPushService::sendToInvestor(
+                $investor,
+                "🏛 رسالة من إدارة المنصة - شقة {$conversation->apartment?->apartment_number}",
+                $validated['message'],
+                route('investor.chats.show', $conversation->id),
+                'chat-admin-' . $conversation->id
+            );
+        }
+
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
