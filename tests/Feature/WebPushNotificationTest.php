@@ -50,6 +50,15 @@ class WebPushNotificationTest extends TestCase
         $res2 = $this->actingAs($investorUser)->postJson('/investor/api/push-subscribe', $payload);
         $res2->assertStatus(200)->assertJson(['subscriptions_count' => 1]);
         $this->assertEquals(1, PushSubscription::where('investor_id', $investor->id)->count());
+
+        // Test delayed push endpoint
+        $delayRes = $this->actingAs($investorUser)->postJson('/investor/api/test-push', ['delay' => 5]);
+        $delayRes->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'delayed' => true,
+                'delay_seconds' => 5,
+            ]);
     }
 
     public function test_investor_dashboard_renders_webpush_subscription_wiring(): void

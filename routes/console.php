@@ -9,7 +9,8 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Artisan::command('push:test {investor_id} {--delay=0}', function ($investorId) {
+Artisan::command('push:test {investor_id} {--delay=0}', function () {
+    $investorId = $this->argument('investor_id');
     $delay = (int) $this->option('delay');
     if ($delay > 0) {
         sleep($delay);
