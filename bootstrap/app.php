@@ -16,6 +16,9 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'investor/api/unread-alerts',
             'investor/api/push-subscribe',
             'investor/api/test-push',
+            'client/api/push-subscribe',
+            'client/api/test-push',
+            'api/push-rotate',
         ]);
 
         $middleware->web(append: [

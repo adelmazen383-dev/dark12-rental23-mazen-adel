@@ -4,14 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>تسجيل الدخول - منصة دَارِك لتنظيم الإيجار</title>
+    <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+    <link rel="icon" type="image/png" sizes="48x48" href="{{ asset('images/favicon-48.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/apple-touch-icon.png') }}">
+    <title>تسجيل الدخول - منصة دارك لتنظيم الإيجار</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>body { font-family: 'Cairo', sans-serif; }</style>
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        @keyframes authFloatIn {
+            from { opacity: 0; transform: translateY(24px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes authOrb {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(20px, -18px) scale(1.1); }
+        }
+        .auth-card-in { animation: authFloatIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .auth-orb { animation: authOrb 10s ease-in-out infinite; }
+    </style>
 </head>
-<body class="bg-slate-900 min-h-screen flex items-center justify-center p-4 selection:bg-amber-500 selection:text-white">
-    <div class="max-w-md w-full bg-white rounded-3xl shadow-2xl p-6 sm:p-8 border border-slate-100">
+<body class="bg-slate-900 min-h-screen flex items-center justify-center p-4 selection:bg-amber-500 selection:text-white relative overflow-x-hidden">
+    <div class="fixed -top-24 -right-24 w-80 h-80 rounded-full bg-amber-500/15 blur-3xl pointer-events-none auth-orb"></div>
+    <div class="fixed -bottom-24 -left-24 w-80 h-80 rounded-full bg-indigo-500/15 blur-3xl pointer-events-none auth-orb" style="animation-delay:-5s;"></div>
+    <div class="relative z-10 max-w-md w-full bg-white rounded-3xl shadow-2xl p-6 sm:p-8 border border-slate-100 auth-card-in">
         <!-- Brand Header -->
         <div class="text-center mb-6">
             <div class="w-20 h-20 mx-auto mb-3 rounded-2xl overflow-hidden bg-white p-1 border-2 border-amber-400 shadow-md flex items-center justify-center">
@@ -63,8 +80,13 @@
                         نسيت كلمة المرور؟
                     </a>
                 </div>
-                <input type="password" name="password" required
-                    class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-left" dir="ltr" placeholder="••••••••">
+                <div class="relative">
+                    <input type="password" id="loginPassword" name="password" required
+                        class="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-left" dir="ltr" placeholder="••••••••">
+                    <button type="button" onclick="togglePass('loginPassword', this)" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs" title="إظهار / إخفاء">
+                        <i class="fa-regular fa-eye"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="flex items-center justify-between text-xs pt-1">
@@ -74,7 +96,7 @@
                 </label>
             </div>
 
-            <button type="submit" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl shadow-md transition text-sm flex items-center justify-center gap-2">
+            <button type="submit" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl shadow-md transition active:scale-[0.98] text-sm flex items-center justify-center gap-2">
                 <i class="fa-solid fa-arrow-right-to-bracket"></i>
                 <span>تسجيل الدخول</span>
             </button>
@@ -97,5 +119,14 @@
             </div>
         </div>
     </div>
+    <script>
+        function togglePass(id, btn) {
+            const inp = document.getElementById(id);
+            if (!inp) return;
+            const show = inp.type === 'password';
+            inp.type = show ? 'text' : 'password';
+            btn.innerHTML = show ? '<i class="fa-regular fa-eye-slash"></i>' : '<i class="fa-regular fa-eye"></i>';
+        }
+    </script>
 </body>
 </html>

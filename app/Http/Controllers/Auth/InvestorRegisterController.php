@@ -198,7 +198,7 @@ class InvestorRegisterController extends Controller
             return $investor;
         });
 
-        // Notify Admin via WhatsApp safely
+        // Notify Admin via WhatsApp & WebPush safely
         try {
             NotificationService::sendWhatsApp(
                 \App\Models\Setting::getValue('admin_whatsapp', '0500000000'),
@@ -207,8 +207,15 @@ class InvestorRegisterController extends Controller
                 'investor',
                 $investor->id
             );
+
+            \App\Services\WebPushService::sendToAdmins(
+                "🏢 طلب تسجيل مستثمر جديد: {$investor->full_name}",
+                "شقة {$request->apartment_number} | الجوال: {$investor->phone} — بانتظار المراجعة",
+                route('admin.investors.show', $investor->id),
+                'admin-investor-new-' . $investor->id
+            );
         } catch (\Throwable $e) {
-            Log::warning('WhatsApp notification error: ' . $e->getMessage());
+            Log::warning('Admin registration notification error: ' . $e->getMessage());
         }
 
         return redirect()->route('login')->with('success', 'تم تقديم طلب التسجيل بنجاح! طلبك الآن قيد المراجعة والتدقيق لدى إدارة البرج، وسيتم إشعارك فور الاعتماد.');

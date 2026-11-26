@@ -2,12 +2,18 @@
 
 @section('title', 'حالة الطلب - حجز ' . $booking->reference_number)
 @section('meta_robots', 'noindex, nofollow')
+@section('push_booking_reference', $booking->reference_number)
 
 @section('content')
 <div class="space-y-6 max-w-xl mx-auto">
 
+    @include('partials.client-push-banner', [
+        'pushTitle' => 'فعّل الإشعارات الفورية لمتابعة تأكيد حجزك',
+        'pushSubtitle' => 'سيصلك إشعار على جوالك فور اعتماد الحوالة وتأكيد الحجز حتى لو أغلقت هذه الصفحة.'
+    ])
+
     <!-- Success Card -->
-    <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 text-center">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 text-center animate-fade-in">
         <!-- Status Icon -->
         <div class="w-20 h-20 bg-amber-100 rounded-3xl mx-auto flex items-center justify-center text-amber-600 text-3xl shadow-inner mb-4 animate-bounce">
             <i class="fa-solid fa-hourglass-half"></i>
@@ -110,4 +116,34 @@
     </div>
 
 </div>
+@endsection
+
+@section('scripts')
+@if(in_array($booking->status, ['pending_payment', 'pending_verification']))
+<script>
+    (function () {
+        const statusUrl = @json(route('client.api.booking-status', $booking->reference_number));
+        const currentStatus = @json($booking->status);
+        setInterval(async function () {
+            try {
+                const r = await fetch(statusUrl, { headers: { 'Accept': 'application/json' } });
+                if (!r.ok) return;
+                const d = await r.json();
+                if (d.status && d.status !== currentStatus) {
+                    if (window.DarkClientPush) {
+                        window.DarkClientPush.playChime();
+                        window.DarkClientPush.vibratePhone();
+                        window.DarkClientPush.showToast(
+                            d.status === 'confirmed' ? '✅ تم تأكيد حجزك الآن!' : '🔔 تحديث حالة الحجز',
+                            d.reception_code ? ('كود استلام المفتاح: ' + d.reception_code) : (d.status_label || ''),
+                            '#'
+                        );
+                    }
+                    setTimeout(() => window.location.reload(), 1800);
+                }
+            } catch (_) {}
+        }, 6000);
+    })();
+</script>
+@endif
 @endsection

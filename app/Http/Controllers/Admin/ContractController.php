@@ -116,6 +116,17 @@ class ContractController extends Controller
         $contract->update(['status' => $request->status]);
         AuditService::log('rental_contract_status_updated', $contract, null, ['status' => $request->status]);
 
+        $contract->loadMissing('investor');
+        if ($contract->investor) {
+            \App\Services\WebPushService::sendToInvestor(
+                $contract->investor,
+                "📄 تحديث حالة العقد #{$contract->contract_number}",
+                "الحالة الجديدة: {$request->status} | شقة {$contract->unit_number}",
+                route('investor.contracts.show', $contract->id),
+                'contract-status-' . $contract->id
+            );
+        }
+
         return back()->with('success', 'تم تحديث حالة العقد بنجاح.');
     }
 }

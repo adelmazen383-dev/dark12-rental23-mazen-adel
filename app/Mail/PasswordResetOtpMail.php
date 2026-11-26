@@ -21,7 +21,8 @@ class PasswordResetOtpMail extends Mailable
 
     public function build()
     {
-        return $this->subject('رمز التحقق لإعادة تعيين كلمة المرور - منصة دَارِك')
-                    ->view('emails.password-reset-otp');
+        return $this->subject('رمز التحقق لإعادة تعيين كلمة المرور - منصة دارك')
+                    ->view('emails.password-reset-otp')
+                    ->text('emails.password-reset-otp-text');
     }
 }

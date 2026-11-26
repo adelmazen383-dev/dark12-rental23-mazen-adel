@@ -115,6 +115,19 @@ class InvoiceController extends Controller
 
         AuditService::log('invoice_created', $invoice, null, $invoice->toArray());
 
+        if ($invoice->investor_id) {
+            $inv = Investor::find($invoice->investor_id);
+            if ($inv) {
+                \App\Services\WebPushService::sendToInvestor(
+                    $inv,
+                    "🧾 تم إصدار فاتورة رسمية #{$invoice->invoice_number}",
+                    "العميل: {$invoice->client_name} | الإجمالي: " . number_format((float) $invoice->total_amount, 0) . " ريال",
+                    route('investor.invoices.show', $invoice->id),
+                    'invoice-' . $invoice->id
+                );
+            }
+        }
+
         return redirect()->route('admin.invoices.show', $invoice->id)
             ->with('success', "تم إنشاء الفاتورة رقم {$invoice->invoice_number} بنجاح.");
     }

@@ -8,6 +8,7 @@ use App\Http\Controllers\Client\ApartmentController as ClientApartmentController
 use App\Http\Controllers\Client\BookingController as ClientBookingController;
 use App\Http\Controllers\Client\InspectionController;
 use App\Http\Controllers\Client\ChatController as ClientChatController;
+use App\Http\Controllers\Client\PushController as ClientPushController;
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ApartmentController as AdminApartmentController;
@@ -43,15 +44,23 @@ Route::get('/sw.js', function () {
     $path = public_path('sw.js');
     $content = file_exists($path) ? file_get_contents($path) : '// Service Worker';
     return response($content, 200, [
-        'Content-Type' => 'application/javascript',
+        'Content-Type' => 'application/javascript; charset=UTF-8',
         'Service-Worker-Allowed' => '/',
+        'Cache-Control' => 'no-cache, no-store, must-revalidate',
     ]);
 });
 Route::get('/manifest.json', function () {
     $path = public_path('manifest.json');
     $content = file_exists($path) ? file_get_contents($path) : '{}';
     return response($content, 200, [
-        'Content-Type' => 'application/manifest+json',
+        'Content-Type' => 'application/manifest+json; charset=UTF-8',
+    ]);
+});
+Route::get('/manifest-client.json', function () {
+    $path = public_path('manifest-client.json');
+    $content = file_exists($path) ? file_get_contents($path) : '{}';
+    return response($content, 200, [
+        'Content-Type' => 'application/manifest+json; charset=UTF-8',
     ]);
 });
 Route::get('/apartments/{apartment}', [ClientApartmentController::class, 'show'])->name('client.apartments.show');
@@ -62,11 +71,16 @@ Route::get('/robots.txt', function () {
     $base = $prefix ? ('/' . $prefix) : '';
     $content  = "User-agent: *\n";
     $content .= "Allow: {$base}/\n";
+    $content .= "Allow: {$base}/apartments/\n";
+    $content .= "Allow: {$base}/about\n";
+    $content .= "Allow: {$base}/services\n";
+    $content .= "Allow: {$base}/images/\n";
     $content .= "Disallow: {$base}/admin/\n";
     $content .= "Disallow: {$base}/investor/\n";
     $content .= "Disallow: {$base}/my-chats\n";
     $content .= "Disallow: {$base}/chat/\n";
     $content .= "Disallow: {$base}/booking/\n";
+    $content .= "Disallow: {$base}/password/\n";
     $content .= "Disallow: {$base}/login\n";
     $content .= "Disallow: {$base}/register\n";
     $content .= "Disallow: {$base}/investor/register\n\n";
@@ -74,27 +88,30 @@ Route::get('/robots.txt', function () {
     return response($content, 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
 });
 
-// SEO: Dynamic Sitemap
+// SEO: Dynamic Sitemap with image metadata
 Route::get('/sitemap.xml', function () {
-    $apartments = \App\Models\Apartment::visibleToClients()->latest('updated_at')->get();
+    $apartments = \App\Models\Apartment::visibleToClients()->with('media')->latest('updated_at')->get();
 
     $urls = collect([
-        ['loc' => url('/'),          'priority' => '1.0', 'changefreq' => 'daily',   'lastmod' => now()->toAtomString()],
-        ['loc' => url('/about'),     'priority' => '0.7', 'changefreq' => 'monthly', 'lastmod' => now()->toAtomString()],
-        ['loc' => url('/services'),  'priority' => '0.8', 'changefreq' => 'monthly', 'lastmod' => now()->toAtomString()],
+        ['loc' => url('/'),          'priority' => '1.0', 'changefreq' => 'daily',   'lastmod' => now()->toAtomString(), 'image' => asset('images/icon-512.png'), 'image_title' => 'منصة دارك لتنظيم الإيجار وتأجير الشقق'],
+        ['loc' => url('/services'),  'priority' => '0.8', 'changefreq' => 'weekly',  'lastmod' => now()->toAtomString(), 'image' => asset('images/icon-512.png'), 'image_title' => 'خدمات منصة دارك العقارية'],
+        ['loc' => url('/about'),     'priority' => '0.7', 'changefreq' => 'monthly', 'lastmod' => now()->toAtomString(), 'image' => asset('images/icon-512.png'), 'image_title' => 'من نحن - منصة دارك'],
     ]);
 
     foreach ($apartments as $apt) {
+        $cover = $apt->images->first();
         $urls->push([
-            'loc'        => url('/apartments/' . $apt->id),
-            'priority'   => '0.9',
-            'changefreq' => 'daily',
-            'lastmod'    => $apt->updated_at ? $apt->updated_at->toAtomString() : now()->toAtomString(),
+            'loc'         => url('/apartments/' . $apt->id),
+            'priority'    => '0.9',
+            'changefreq'  => 'daily',
+            'lastmod'     => $apt->updated_at ? $apt->updated_at->toAtomString() : now()->toAtomString(),
+            'image'       => $cover ? asset('storage/' . $cover->file_path) : asset('images/icon-512.png'),
+            'image_title' => 'شقة ' . $apt->apartment_number . ' - منصة دارك لتأجير الشقق',
         ]);
     }
 
     $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-    $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+    $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' . "\n";
     foreach ($urls as $url) {
         $xml .= "  <url>\n";
         $xml .= "    <loc>" . e($url['loc']) . "</loc>\n";
@@ -103,6 +120,12 @@ Route::get('/sitemap.xml', function () {
         }
         $xml .= "    <changefreq>" . $url['changefreq'] . "</changefreq>\n";
         $xml .= "    <priority>" . $url['priority'] . "</priority>\n";
+        if (!empty($url['image'])) {
+            $xml .= "    <image:image>\n";
+            $xml .= "      <image:loc>" . e($url['image']) . "</image:loc>\n";
+            $xml .= "      <image:title>" . e($url['image_title']) . "</image:title>\n";
+            $xml .= "    </image:image>\n";
+        }
         $xml .= "  </url>\n";
     }
     $xml .= '</urlset>';
@@ -130,6 +153,13 @@ Route::get('/chat/{token}/messages', [ClientChatController::class, 'getMessages'
 Route::put('/chat/{token}/messages/{message}', [ClientChatController::class, 'updateMessage'])->name('client.chat.messages.update')->middleware('throttle:30,1');
 Route::delete('/chat/{token}/messages/{message}', [ClientChatController::class, 'deleteMessage'])->name('client.chat.messages.delete')->middleware('throttle:30,1');
 Route::post('/chat/{token}/survey', [ClientChatController::class, 'submitSurvey'])->name('client.chat.survey')->middleware('throttle:10,1');
+
+// Client & Universal Web Push API routes (works on iPhone PWA, Android & Desktop)
+Route::get('/client/api/vapid-key', [ClientPushController::class, 'vapidKey'])->name('client.api.vapid-key');
+Route::post('/client/api/push-subscribe', [ClientPushController::class, 'subscribe'])->name('client.api.push-subscribe')->middleware('throttle:30,1');
+Route::post('/client/api/test-push', [ClientPushController::class, 'testPush'])->name('client.api.test-push')->middleware('throttle:10,1');
+Route::get('/client/api/booking-status/{booking:reference_number}', [ClientPushController::class, 'bookingStatus'])->name('client.api.booking-status');
+Route::post('/api/push-rotate', [ClientPushController::class, 'rotate'])->name('api.push-rotate')->middleware('throttle:30,1');
 
 /*
 |--------------------------------------------------------------------------
@@ -215,6 +245,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     // Settings
     Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::post('settings', [SettingsController::class, 'update'])->name('settings.update');
+    Route::post('settings/test-mail', [SettingsController::class, 'testMail'])->name('settings.test-mail');
     Route::resource('bank-accounts', SettingsController::class)->only(['store', 'update', 'destroy'])->names('bank-accounts');
 
     // Reports

@@ -42,4 +42,9 @@
     Header set X-XSS-Protection "1; mode=block"
     Header set Referrer-Policy "strict-origin-when-cross-origin"
     Header set Permissions-Policy "camera=(), microphone=(), geolocation=(self)"
+
+    <FilesMatch "^sw\.js$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Service-Worker-Allowed "/"
+    </FilesMatch>
 </IfModule>

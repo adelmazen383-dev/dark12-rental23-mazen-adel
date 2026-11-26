@@ -125,16 +125,34 @@ class ReceptionController extends Controller
             'apartment_id' => $booking->apartment_id,
         ]);
 
-        // WhatsApp notification to investor
-        if ($booking->apartment->investor && $booking->apartment->investor->whatsapp) {
-            NotificationService::sendWhatsApp(
-                $booking->apartment->investor->whatsapp,
-                "🔑 إشعار استلام مفتاح ودخول نزيل:\nوصل النزيل {$booking->customer_name} إلى استقبال البرج وتم تسليمه كارت الدخول لشقة {$booking->apartment->apartment_number}.\nنتمنى له إقامة سعيدة.",
-                'investor',
-                'booking',
-                $booking->id
+        // WhatsApp & Web Push notification to investor & client
+        if ($booking->apartment->investor) {
+            if ($booking->apartment->investor->whatsapp) {
+                NotificationService::sendWhatsApp(
+                    $booking->apartment->investor->whatsapp,
+                    "🔑 إشعار استلام مفتاح ودخول نزيل:\nوصل النزيل {$booking->customer_name} إلى استقبال البرج وتم تسليمه كارت الدخول لشقة {$booking->apartment->apartment_number}.\nنتمنى له إقامة سعيدة.",
+                    'investor',
+                    'booking',
+                    $booking->id
+                );
+            }
+
+            \App\Services\WebPushService::sendToInvestor(
+                $booking->apartment->investor,
+                "🔑 تم تسليم مفتاح شقة {$booking->apartment->apartment_number}",
+                "وصل النزيل {$booking->customer_name} وتم تسجيل دخوله من الاستقبال بنجاح.",
+                route('investor.bookings.show', $booking->id),
+                'reception-checkin-' . $booking->id
             );
         }
+
+        \App\Services\WebPushService::sendToClientByBooking(
+            $booking,
+            "🔑 أهلاً بك! تم تسجيل دخولك بنجاح",
+            "تم تسليم مفتاح شقة {$booking->apartment->apartment_number} (حجز #{$booking->reference_number}). نتمنى لك إقامة سعيدة!",
+            route('client.booking.confirmation', $booking->reference_number),
+            'client-checkin-' . $booking->id
+        );
 
         return back()->with('success', "تم التحقق وتسجيل دخول النزيل {$booking->customer_name} وتسليمه مفتاح شقة {$booking->apartment->apartment_number} بنجاح.");
     }
@@ -153,6 +171,25 @@ class ReceptionController extends Controller
             'customer_name' => $booking->customer_name,
             'apartment' => $booking->apartment->apartment_number,
         ]);
+
+        $booking->loadMissing('apartment.investor');
+        if ($booking->apartment?->investor) {
+            \App\Services\WebPushService::sendToInvestor(
+                $booking->apartment->investor,
+                "🚪 تم تسجيل خروج النزيل - شقة {$booking->apartment->apartment_number}",
+                "النزيل {$booking->customer_name} سلّم كارت الدخول، والشقة جاهزة للتجهيز.",
+                route('investor.bookings.show', $booking->id),
+                'reception-checkout-' . $booking->id
+            );
+        }
+
+        \App\Services\WebPushService::sendToClientByBooking(
+            $booking,
+            "🌟 شكراً لإقامتك معنا في منصة دارك",
+            "تم تسجيل خروجك من شقة {$booking->apartment?->apartment_number}. نتطلع لاستضافتك مجدداً!",
+            route('client.apartments.index'),
+            'client-checkout-' . $booking->id
+        );
 
         return back()->with('success', "تم تسجيل خروج النزيل واستلام الكارت بنجاح. أصبحت شقة {$booking->apartment->apartment_number} جاهزة للتنظيف وإعادة الإتاحة.");
     }
@@ -230,14 +267,24 @@ class ReceptionController extends Controller
             'apartment' => $apartment->apartment_number,
         ]);
 
-        // Notify investor via WhatsApp
-        if ($investor && $investor->whatsapp) {
-            NotificationService::sendWhatsApp(
-                $investor->whatsapp,
-                "🚨 ضبط تأجير وإثبات صفقة مباشرة:\nتم رصد النزيل ({$booking->customer_name}) في استقبال البرج متوجهاً لشقتك ({$apartment->apartment_number}) دون تسجيل حجز رسمي بالمنصة.\nتم قيد عمولة المنصة ({$bookingFee} ر.س) + غرامة الالتفاف ({$penaltyFee} ر.س) على محفظتك لضمان حقوق التشغيل والأمن الفندقي.",
-                'investor',
-                'booking',
-                $booking->id
+        // Notify investor via WhatsApp & Web Push
+        if ($investor) {
+            if ($investor->whatsapp) {
+                NotificationService::sendWhatsApp(
+                    $investor->whatsapp,
+                    "🚨 ضبط تأجير وإثبات صفقة مباشرة:\nتم رصد النزيل ({$booking->customer_name}) في استقبال البرج متوجهاً لشقتك ({$apartment->apartment_number}) دون تسجيل حجز رسمي بالمنصة.\nتم قيد عمولة المنصة ({$bookingFee} ر.س) + غرامة الالتفاف ({$penaltyFee} ر.س) على محفظتك لضمان حقوق التشغيل والأمن الفندقي.",
+                    'investor',
+                    'booking',
+                    $booking->id
+                );
+            }
+
+            \App\Services\WebPushService::sendToInvestor(
+                $investor,
+                "🚨 تنبيه إداري: قيد صفقة مباشرة - شقة {$apartment->apartment_number}",
+                "تم رصد النزيل ({$booking->customer_name}) وخصم {$totalDeduction} ريال من المحفظة.",
+                route('investor.bookings.show', $booking->id),
+                'unregistered-deal-' . $booking->id
             );
         }
 

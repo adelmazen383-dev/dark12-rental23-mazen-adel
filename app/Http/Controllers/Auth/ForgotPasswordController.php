@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Mail\PasswordResetOtpMail;
 use App\Models\User;
 use App\Services\AuditService;
+use App\Services\MailConfigService;
+use App\Services\WebPushService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,10 +28,14 @@ class ForgotPasswordController extends Controller
     }
 
     /**
-     * Send OTP code to user's registered email
+     * Send OTP code to user's registered email (with strict delivery verification + push fallback)
      */
     public function sendOtp(Request $request)
     {
+        if ($request->has('email')) {
+            $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
+        }
+
         $validated = $request->validate([
             'email' => 'required|email|exists:users,email',
         ], [
@@ -54,7 +60,7 @@ class ForgotPasswordController extends Controller
         }
         RateLimiter::hit($throttleKey, 600);
 
-        $user = User::where('email', $validated['email'])->first();
+        $user = User::whereRaw('LOWER(email) = ?', [Str::lower($validated['email'])])->firstOrFail();
 
         // Generate cryptographically secure 6-digit numeric OTP
         $otp = (string) random_int(100000, 999999);
@@ -68,21 +74,71 @@ class ForgotPasswordController extends Controller
             ]
         );
 
-        // Send Email
+        // Apply Admin-configured SMTP settings if present
+        MailConfigService::apply();
+
         $mailSent = false;
-        try {
-            Mail::to($user->email)->send(new PasswordResetOtpMail($otp, $user->name));
-            $mailSent = true;
-        } catch (\Throwable $e) {
-            Log::warning("Password reset OTP mail failed for {$user->email}: " . $e->getMessage());
+        $mailError = null;
+
+        if (app()->environment('testing') || config('mail.default') === 'array') {
+            try {
+                Mail::to($user->email)->send(new PasswordResetOtpMail($otp, $user->name));
+                $mailSent = true;
+            } catch (\Throwable $e) {
+                $mailError = $e->getMessage();
+            }
+        } elseif (MailConfigService::isRealDeliveryConfigured()) {
+            try {
+                Mail::to($user->email)->send(new PasswordResetOtpMail($otp, $user->name));
+                $mailSent = true;
+            } catch (\Throwable $e) {
+                $mailError = $e->getMessage();
+                Log::error("Password reset OTP mail failed for {$user->email}: " . $mailError);
+                AuditService::log('password_reset_mail_failed', $user, null, [
+                    'email' => $user->email,
+                    'error' => mb_substr($mailError, 0, 300),
+                ]);
+            }
+        } else {
+            $mailError = 'SMTP_NOT_CONFIGURED';
+            Log::warning("Password reset OTP requested for {$user->email} while MAIL_MAILER=" . config('mail.default') . " (no real SMTP configured).");
+        }
+
+        // If email could NOT be sent, try delivering OTP securely to the user's own registered Web Push device(s)
+        $pushDelivered = 0;
+        if (!$mailSent && !app()->environment('testing')) {
+            $pushDelivered = WebPushService::sendToUser(
+                $user,
+                "🔐 رمز التحقق لإعادة تعيين كلمة المرور: {$otp}",
+                "الرمز صالح لمدة 15 دقيقة فقط. لا تشاركه مع أي شخص.",
+                route('password.verify', ['email' => $user->email]),
+                'password-otp-' . $user->id
+            );
+        }
+
+        if (!$mailSent && $pushDelivered === 0 && !(config('app.debug') && config('mail.default') === 'log')) {
+            // Do not keep an undeliverable token or burn user rate-limit attempts on server mail error
+            DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+            RateLimiter::clear($throttleKey);
+
+            $errorText = $mailError === 'SMTP_NOT_CONFIGURED'
+                ? 'تعذر إرسال رمز التحقق لأن خدمة البريد الإلكتروني (SMTP) غير مفعلة على السيرفر بعد. يرجى ضبط إعدادات البريد الإلكتروني من لوحة تحكم الإدارة (إعدادات النظام ← إعدادات البريد SMTP)، أو التواصل مع إدارة المنصة لإعادة تعيين كلمة المرور.'
+                : 'تعذر إرسال البريد الإلكتروني في الوقت الحالي بسبب خطأ في خادم البريد (SMTP). يرجى التحقق من إعدادات البريد في لوحة الإدارة أو التواصل مع الدعم.';
+
+            return back()->withInput()->withErrors(['email' => $errorText]);
         }
 
         session(['reset_email' => $user->email]);
 
-        // Provide friendly feedback
-        $msg = "تم إرسال رمز التحقق (OTP) المكون من 6 أرقام إلى بريدك الإلكتروني ({$user->email}).";
-        if (app()->environment('testing') || (config('app.debug') && config('mail.default') === 'log')) {
-            session()->flash('demo_otp', $otp);
+        if ($mailSent) {
+            $msg = "تم إرسال رمز التحقق (OTP) المكون من 6 أرقام إلى بريدك الإلكتروني ({$user->email}). يرجى مراجعة صندوق الوارد أو مجلد الرسائل غير المرغوب فيها (Spam).";
+        } elseif ($pushDelivered > 0) {
+            $msg = "خدمة البريد غير مفعلة حالياً، ولكن تم إرسال رمز التحقق (OTP) مباشرة عبر إشعارات التطبيق إلى جهازك المسجل!";
+        } else {
+            $msg = "تم إنشاء رمز التحقق (OTP) لحسابك ({$user->email}).";
+            if (config('app.debug') && config('mail.default') === 'log') {
+                session()->flash('demo_otp', $otp);
+            }
         }
 
         return redirect()->route('password.verify', ['email' => $user->email])
@@ -109,6 +165,10 @@ class ForgotPasswordController extends Controller
      */
     public function verifyOtpAndReset(Request $request)
     {
+        if ($request->has('email')) {
+            $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
+        }
+
         $validated = $request->validate([
             'email' => 'required|email|exists:users,email',
             'otp' => 'required|string|size:6',
@@ -140,7 +200,7 @@ class ForgotPasswordController extends Controller
         }
 
         $record = DB::table('password_reset_tokens')
-            ->where('email', $validated['email'])
+            ->whereRaw('LOWER(email) = ?', [Str::lower($validated['email'])])
             ->first();
 
         if (!$record) {
@@ -158,7 +218,7 @@ class ForgotPasswordController extends Controller
         }
 
         // Timing-attack safe comparison
-        if (!hash_equals(trim((string)$record->token), trim((string)$validated['otp']))) {
+        if (!hash_equals(trim((string) $record->token), trim((string) $validated['otp']))) {
             RateLimiter::hit($throttleKey, 600);
             AuditService::log('security_invalid_otp_attempt', null, null, [
                 'email' => $validated['email'],
@@ -175,12 +235,12 @@ class ForgotPasswordController extends Controller
         RateLimiter::clear($throttleKey);
 
         // Update User Password securely
-        $user = User::where('email', $validated['email'])->first();
+        $user = User::whereRaw('LOWER(email) = ?', [Str::lower($validated['email'])])->firstOrFail();
         $user->password = Hash::make($validated['password']);
         $user->save();
 
         // Delete used token immediately
-        DB::table('password_reset_tokens')->where('email', $validated['email'])->delete();
+        DB::table('password_reset_tokens')->whereRaw('LOWER(email) = ?', [Str::lower($validated['email'])])->delete();
         session()->forget('reset_email');
 
         AuditService::log('password_reset_via_email_otp', $user, null, [

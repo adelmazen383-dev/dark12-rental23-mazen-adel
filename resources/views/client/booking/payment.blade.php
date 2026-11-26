@@ -2,9 +2,15 @@
 
 @section('title', 'التحويل البنكي ورفع الإيصال - حجز ' . $booking->reference_number)
 @section('meta_robots', 'noindex, nofollow')
+@section('push_booking_reference', $booking->reference_number)
 
 @section('content')
 <div class="space-y-6">
+
+    @include('partials.client-push-banner', [
+        'pushTitle' => 'فعّل إشعار تأكيد الحجز وكود استلام المفتاح',
+        'pushSubtitle' => 'اضغط هنا لتصلك رسالة فورية على جوالك (أو الآيفون) بمجرد مطابقة التحويل وتأكيد الحجز حتى لو أغلقت الموقع.'
+    ])
 
     <!-- Progress Steps Header -->
     <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
@@ -133,6 +139,7 @@
 
         <form action="{{ route('client.booking.upload-receipt', $booking->reference_number) }}" method="POST" enctype="multipart/form-data" class="space-y-4 mt-4">
             @csrf
+            <input type="hidden" name="push_endpoint" class="js-push-endpoint" value="">
             <div>
                 <label class="block text-xs font-semibold text-gray-700 mb-1">ملف الإيصال (صورة أو PDF) *</label>
                 <div class="border-2 border-dashed border-gray-300 hover:border-amber-500 rounded-2xl p-6 text-center bg-gray-50 transition cursor-pointer" onclick="document.getElementById('receipt_file').click()">
@@ -162,8 +169,10 @@
 <script>
     function copyIban(iban) {
         navigator.clipboard.writeText(iban).then(() => {
-            alert('تم نسخ رقم الآيبان بنجاح: ' + iban);
-        });
+            if (window.DarkClientPush) {
+                window.DarkClientPush.showToast('✅ تم نسخ الآيبان', 'تم نسخ رقم الآيبان بنجاح: ' + iban, '#');
+            }
+        }).catch(() => {});
     }
 
     function previewFile(input) {

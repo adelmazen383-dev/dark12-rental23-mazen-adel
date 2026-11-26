@@ -82,7 +82,7 @@ class ChatController extends Controller
 
         AuditService::log('admin_sent_chat_message', $conversation, null, ['message' => $validated['message']]);
 
-        $conversation->loadMissing('apartment.investor');
+        $conversation->loadMissing('apartment.investor', 'booking');
         $investor = $conversation->apartment?->investor ?? $conversation->investor;
         if ($investor) {
             \App\Services\WebPushService::sendToInvestor(
@@ -93,6 +93,14 @@ class ChatController extends Controller
                 'chat-admin-' . $conversation->id
             );
         }
+
+        \App\Services\WebPushService::sendToClientByConversation(
+            $conversation,
+            "🏛 رسالة من إدارة منصة دارك - شقة {$conversation->apartment?->apartment_number}",
+            \Illuminate\Support\Str::limit($validated['message'], 120),
+            route('client.chat.show', $conversation->customer_token),
+            'client-chat-admin-' . $conversation->id
+        );
 
         if ($request->wantsJson()) {
             return response()->json([

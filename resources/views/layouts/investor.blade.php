@@ -5,15 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="robots" content="noindex, nofollow">
-    <link rel="icon" type="image/png" href="{{ asset('images/icon-192.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('images/icon-192.png') }}">
+    <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+    <link rel="icon" type="image/png" sizes="48x48" href="{{ asset('images/favicon-48.png') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('images/icon-192.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ url('/manifest.json') }}">
     <meta name="theme-color" content="#0f172a">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="دارك للإيجار">
+    <meta name="apple-mobile-web-app-title" content="دارك للمستثمر">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>@yield('title', 'بوابة المستثمر') - أجنحة البرج</title>
+    <title>@yield('title', 'بوابة المستثمر') - منصة دارك</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,6 +23,23 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         body { font-family: 'Cairo', sans-serif; }
+        @keyframes invFadeUp {
+            from { opacity: 0; transform: translateY(14px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes bellWiggle {
+            0%, 100% { transform: rotate(0deg); }
+            15% { transform: rotate(14deg); }
+            30% { transform: rotate(-12deg); }
+            45% { transform: rotate(10deg); }
+            60% { transform: rotate(-8deg); }
+            75% { transform: rotate(4deg); }
+        }
+        .inv-fade-up { animation: invFadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .bell-wiggle { animation: bellWiggle 1.2s ease-in-out infinite; transform-origin: top center; }
+        @media (prefers-reduced-motion: reduce) {
+            .inv-fade-up, .bell-wiggle { animation: none !important; }
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 antialiased min-h-screen flex selection:bg-emerald-500 selection:text-white">
@@ -197,6 +216,20 @@
                             جاري فحص حالة الإشعارات على هذا الهاتف...
                         </div>
 
+                        <!-- iPhone Safari Home Screen Setup Guide inside Bell Panel -->
+                        <div id="iosPanelGuide" class="hidden rounded-xl p-3 bg-amber-50 border border-amber-200 text-amber-950 text-[11px] space-y-2 leading-relaxed">
+                            <div class="font-black text-amber-900 flex items-center gap-1.5">
+                                <i class="fa-brands fa-apple text-sm"></i>
+                                <span>خطوات التفعيل على الآيفون (iPhone):</span>
+                            </div>
+                            <ol class="list-decimal list-inside space-y-1 text-amber-900 font-medium">
+                                <li>افتح هذا الرابط في متصفح <strong>Safari</strong>.</li>
+                                <li>اضغط أيقونة <strong>المشاركة</strong> <i class="fa-solid fa-arrow-up-from-bracket text-sky-600 mx-0.5"></i> بالأسفل.</li>
+                                <li>اختر <strong>«إضافة إلى الشاشة الرئيسية»</strong> (Add to Home Screen).</li>
+                                <li>افتح التطبيق من شاشة الآيفون واضغط <strong>«تفعيل الإشعارات»</strong>.</li>
+                            </ol>
+                        </div>
+
                         <div class="space-y-2" id="pushActionsWrapper">
                             <!-- Button shown ONLY when permission is NOT granted -->
                             <button id="panelEnablePushBtn" onclick="enablePushNotifications(false)" type="button" class="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm">
@@ -357,6 +390,24 @@
                 </div>
             </div>
 
+            <!-- iPhone Safari Home Screen Guide Banner -->
+            <div id="iosPushBanner" class="hidden rounded-2xl bg-gradient-to-l from-amber-50 via-white to-sky-50 border-2 border-amber-300 p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 inv-fade-up">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-slate-900 text-amber-400 flex items-center justify-center text-lg flex-shrink-0 shadow-xs">
+                        <i class="fa-brands fa-apple"></i>
+                    </div>
+                    <div class="space-y-1">
+                        <h4 class="font-black text-xs sm:text-sm text-slate-900">تفعيل إشعارات الآيفون (توصلك فوراً والموقع مغلق)</h4>
+                        <p class="text-[11px] text-slate-700 leading-relaxed">
+                            على الآيفون: اضغط زر <strong>المشاركة</strong> <i class="fa-solid fa-arrow-up-from-bracket text-sky-600 mx-0.5"></i> في Safari ثم اختر <strong>«إضافة إلى الشاشة الرئيسية»</strong>، وبعدها افتح أيقونة <strong>«دارك للمستثمر»</strong> من شاشتك الرئيسية لتصلك الإشعارات فوراً!
+                        </p>
+                    </div>
+                </div>
+                <button onclick="dismissIosBanner()" type="button" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition self-end sm:self-center flex-shrink-0" title="إخفاء">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
             <!-- Blocked Notifications Hint -->
             <div id="pushBlockedBanner" class="hidden rounded-2xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-900 flex items-start gap-3">
                 <i class="fa-solid fa-bell-slash text-rose-600 text-base flex-shrink-0 mt-0.5"></i>
@@ -413,11 +464,15 @@
         const SW_URL = @json(url('/sw.js'));
         const SW_SCOPE = @json(rtrim(parse_url(url('/'), PHP_URL_PATH) ?: '', '/') . '/');
         const VAPID_KEY_URL = @json(route('investor.api.vapid-key'));
+        const EMBEDDED_VAPID_PUBLIC_KEY = @json(\App\Services\WebPushService::getPublicKey());
         const PUSH_SUBSCRIBE_URL = @json(route('investor.api.push-subscribe'));
         const TEST_PUSH_URL = @json(route('investor.api.test-push'));
         const UNREAD_ALERTS_URL = @json(route('investor.api.unread-alerts'));
         const LOGO_ICON_URL = @json(asset('images/icon-192.png'));
         const CSRF_TOKEN = @json(csrf_token());
+
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
 
         let lastSeenMessageId = null;
         let lastSeenBookingId = null;
@@ -426,11 +481,48 @@
         let chimeUnlocked = false;
         let toastTimeout = null;
         let swRegistration = null;
+        let cachedVapidPublicKey = EMBEDDED_VAPID_PUBLIC_KEY || null;
+
         // Prevent automatic browser app install prompts completely
         window.addEventListener('beforeinstallprompt', function (e) {
             e.preventDefault();
             return false;
         });
+
+        function detectDeviceLabel() {
+            const ua = navigator.userAgent || '';
+            if (isIOS) return isStandalone ? 'iPhone/iPad PWA' : 'iPhone/iPad Safari';
+            if (/Android/i.test(ua)) return /Chrome/i.test(ua) ? 'Android Chrome' : 'Android Browser';
+            if (/Edg/i.test(ua)) return 'Desktop Edge';
+            if (/Chrome/i.test(ua)) return 'Desktop Chrome';
+            if (/Firefox/i.test(ua)) return 'Desktop Firefox';
+            if (/Safari/i.test(ua)) return 'macOS Safari';
+            return 'Web Browser';
+        }
+
+        function arrayBufferToBase64Url(buffer) {
+            if (!buffer) return '';
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+
+        function extractSubscriptionPayload(sub) {
+            const subJson = sub.toJSON ? sub.toJSON() : {};
+            const keys = subJson.keys || {};
+            const p256dh = keys.p256dh || (sub.getKey ? arrayBufferToBase64Url(sub.getKey('p256dh')) : '');
+            const auth = keys.auth || (sub.getKey ? arrayBufferToBase64Url(sub.getKey('auth')) : '');
+            const encoding = (window.PushManager && PushManager.supportedContentEncodings && PushManager.supportedContentEncodings[0]) || 'aes128gcm';
+            return {
+                endpoint: subJson.endpoint || sub.endpoint,
+                keys: { p256dh, auth },
+                contentEncoding: encoding,
+                device_label: detectDeviceLabel()
+            };
+        }
 
         function urlBase64ToUint8Array(base64String) {
             const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -472,11 +564,26 @@
                 }
             });
 
-            // Register Service Worker with dynamic scope
+            // Register Service Worker with updateViaCache: 'none' for instant updates
             if ('serviceWorker' in navigator) {
                 try {
-                    swRegistration = await navigator.serviceWorker.register(SW_URL, { scope: SW_SCOPE });
+                    swRegistration = await navigator.serviceWorker.register(SW_URL, {
+                        scope: SW_SCOPE,
+                        updateViaCache: 'none'
+                    });
                     await navigator.serviceWorker.ready;
+
+                    navigator.serviceWorker.addEventListener('message', function (event) {
+                        if (!event.data) return;
+                        if (event.data.type === 'DARK_NAVIGATE' && event.data.url) {
+                            window.location.href = event.data.url;
+                        } else if (event.data.type === 'DARK_PUSH_RECEIVED' && event.data.payload) {
+                            playChime();
+                            vibratePhone();
+                            showToast(event.data.payload.title, event.data.payload.body, event.data.payload.url || '#', 'booking');
+                            pollUnreadAlerts();
+                        }
+                    });
 
                     if ('periodicSync' in swRegistration) {
                         try {
@@ -493,6 +600,14 @@
                 }
             }
 
+            // Refresh VAPID key silently in background so click handler stays 100% synchronous for iOS
+            if (!cachedVapidPublicKey) {
+                fetch(VAPID_KEY_URL, { headers: { 'Accept': 'application/json' } })
+                    .then(r => r.ok ? r.json() : null)
+                    .then(d => { if (d && d.publicKey) cachedVapidPublicKey = d.publicKey; })
+                    .catch(() => {});
+            }
+
             refreshPushUiAndSync();
 
             // Start polling unread alerts (first check at 1.2s then every 5s while tab open)
@@ -506,8 +621,16 @@
             localStorage.setItem('dark_dismiss_push_banner', '1');
         }
 
+        function dismissIosBanner() {
+            const banner = document.getElementById('iosPushBanner');
+            if (banner) banner.classList.add('hidden');
+            localStorage.setItem('dark_dismiss_ios_banner', '1');
+        }
+
         async function refreshPushUiAndSync() {
             const enableBanner = document.getElementById('pushEnableBanner');
+            const iosBanner = document.getElementById('iosPushBanner');
+            const iosPanelGuide = document.getElementById('iosPanelGuide');
             const blockedBanner = document.getElementById('pushBlockedBanner');
             const dot = document.getElementById('navAlertDot');
             const statusBox = document.getElementById('pushPanelStatus');
@@ -515,6 +638,25 @@
             const testBtn = document.getElementById('panelTestPushBtn');
             const delayedBtn = document.getElementById('panelTestDelayedPushBtn');
             const troubleshootLink = document.getElementById('pushTroubleshootLink');
+
+            if (isIOS && !isStandalone) {
+                if (enableBanner) enableBanner.classList.add('hidden');
+                if (enableBtn) enableBtn.classList.add('hidden');
+                if (testBtn) testBtn.classList.add('hidden');
+                if (delayedBtn) delayedBtn.classList.add('hidden');
+                if (iosPanelGuide) iosPanelGuide.classList.remove('hidden');
+                if (iosBanner && !localStorage.getItem('dark_dismiss_ios_banner')) {
+                    iosBanner.classList.remove('hidden');
+                }
+                if (statusBox) {
+                    statusBox.innerHTML = '<div class="flex items-center gap-1.5 text-amber-800 font-bold text-xs"><i class="fa-brands fa-apple text-slate-900 text-sm"></i><span>أضف الموقع للشاشة الرئيسية لتفعيل إشعارات الآيفون</span></div><p class="text-[11px] text-amber-950 mt-1 leading-relaxed">نظام iOS يرسل إشعارات الخلفية فقط بعد تثبيت الموقع على الشاشة الرئيسية عبر متصفح Safari.</p>';
+                    statusBox.className = 'text-xs rounded-xl p-3 bg-amber-50 border border-amber-200 text-amber-950 leading-relaxed';
+                }
+                return;
+            }
+
+            if (iosBanner) iosBanner.classList.add('hidden');
+            if (iosPanelGuide) iosPanelGuide.classList.add('hidden');
 
             if (!('Notification' in window) || !('PushManager' in window)) {
                 if (statusBox) {
@@ -558,7 +700,7 @@
                 }
             } else if (Notification.permission === 'denied') {
                 if (enableBanner) enableBanner.classList.add('hidden');
-                if (blockedBanner) blockedBanner.classList.add('hidden');
+                if (blockedBanner) blockedBanner.classList.remove('hidden');
                 if (dot) dot.classList.add('hidden');
 
                 if (enableBtn) enableBtn.classList.add('hidden');
@@ -581,12 +723,17 @@
                 const reg = swRegistration || await navigator.serviceWorker.ready;
                 if (!reg || !reg.pushManager) return false;
 
-                const keyRes = await fetch(VAPID_KEY_URL, { headers: { 'Accept': 'application/json' } });
-                if (!keyRes.ok) return false;
-                const keyData = await keyRes.json();
-                if (!keyData.publicKey) return false;
+                let publicKey = cachedVapidPublicKey;
+                if (!publicKey) {
+                    const keyRes = await fetch(VAPID_KEY_URL, { headers: { 'Accept': 'application/json' } });
+                    if (!keyRes.ok) return false;
+                    const keyData = await keyRes.json();
+                    publicKey = keyData.publicKey;
+                    cachedVapidPublicKey = publicKey;
+                }
+                if (!publicKey) return false;
 
-                const appServerKey = urlBase64ToUint8Array(keyData.publicKey);
+                const appServerKey = urlBase64ToUint8Array(publicKey);
                 let sub = await reg.pushManager.getSubscription();
 
                 if (sub && sub.options && sub.options.applicationServerKey) {
@@ -603,12 +750,10 @@
                     });
                 }
 
-                const subJson = sub.toJSON();
-                if (!subJson.endpoint || !subJson.keys || !subJson.keys.p256dh || !subJson.keys.auth) {
+                const payload = extractSubscriptionPayload(sub);
+                if (!payload.endpoint || !payload.keys.p256dh || !payload.keys.auth) {
                     return false;
                 }
-
-                const encoding = (window.PushManager && PushManager.supportedContentEncodings && PushManager.supportedContentEncodings[0]) || 'aes128gcm';
 
                 const saveRes = await fetch(PUSH_SUBSCRIBE_URL, {
                     method: 'POST',
@@ -617,11 +762,7 @@
                         'Accept': 'application/json',
                         'X-CSRF-TOKEN': CSRF_TOKEN
                     },
-                    body: JSON.stringify({
-                        endpoint: subJson.endpoint,
-                        keys: subJson.keys,
-                        contentEncoding: encoding
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 if (!saveRes.ok) return false;
@@ -631,7 +772,7 @@
                     countEl.innerText = saveData.subscriptions_count;
                 }
                 if (showFeedback) {
-                    showToast('✅ تم تحديث الاتصال', 'تمت مزامنة هذا الهاتف مع السيرفر بنجاح.', '#', 'system');
+                    showToast('✅ تم ربط الجهاز بنجاح', 'تمت مزامنة هذا الهاتف (' + payload.device_label + ') مع السيرفر بنجاح.', '#', 'system');
                 }
                 return true;
             } catch (err) {
@@ -643,10 +784,15 @@
             }
         }
 
-        // ─── User-triggered Enable + Subscribe ──────────────────────
+        // ─── User-triggered Enable + Subscribe (preserves iOS user gesture) ─
         async function enablePushNotifications(sendTestAfter) {
             playChime();
             vibratePhone();
+
+            if (isIOS && !isStandalone) {
+                toggleNotifPanel();
+                return;
+            }
 
             if (!('Notification' in window)) {
                 showToast('تنبيه المتصفح', 'المتصفح لا يدعم إشعارات النظام، لكن التنبيهات المباشرة تعمل.', '#', 'system');

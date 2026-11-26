@@ -3,10 +3,10 @@
 @section('title', 'لوحة تحكم المستثمر')
 
 @section('content')
-<div class="space-y-6">
+<div class="space-y-6 inv-fade-up">
 
     <!-- Welcome & Status Banner -->
-    <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white rounded-2xl p-5 sm:p-6 shadow-lg">
+    <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white rounded-2xl p-5 sm:p-6 shadow-lg transition hover:shadow-xl">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
                 <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold 
@@ -61,7 +61,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
         <!-- Wallet Balance Card -->
-        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col justify-between">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-semibold text-slate-500">رصيد المحفظة</span>
                 <span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm">
@@ -78,7 +78,7 @@
         </div>
 
         <!-- Subscription Status Card -->
-        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col justify-between">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-semibold text-slate-500">الاشتراك الشهري</span>
                 <span class="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-sm">
@@ -97,7 +97,7 @@
         </div>
 
         <!-- Apartments Count -->
-        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col justify-between">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-semibold text-slate-500">شققك بالبرج</span>
                 <span class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-sm">
@@ -113,7 +113,7 @@
         </div>
 
         <!-- Active Bookings -->
-        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col justify-between">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-semibold text-slate-500">الحجوزات القائمة</span>
                 <span class="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center text-sm">

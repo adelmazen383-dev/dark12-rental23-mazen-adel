@@ -165,6 +165,7 @@ class DashboardController extends Controller
             'keys.p256dh' => 'required|string',
             'keys.auth' => 'required|string',
             'contentEncoding' => 'nullable|string|max:30',
+            'device_label' => 'nullable|string|max:100',
         ]);
 
         $sub = \App\Services\WebPushService::saveSubscription(
@@ -172,7 +173,8 @@ class DashboardController extends Controller
             $validated['endpoint'],
             $validated['keys']['p256dh'],
             $validated['keys']['auth'],
-            $validated['contentEncoding'] ?? 'aes128gcm'
+            $validated['contentEncoding'] ?? 'aes128gcm',
+            $validated['device_label'] ?? null
         );
 
         $subscriptionsCount = \App\Models\PushSubscription::where('investor_id', auth()->user()->investor?->id)->count();
@@ -203,16 +205,67 @@ class DashboardController extends Controller
 
         $delay = max(0, min(60, (int) $request->input('delay', 0)));
         if ($delay > 0) {
-            $artisan = base_path('artisan');
-            $phpBinary = file_exists('/usr/bin/php8.3') ? '/usr/bin/php8.3' : (PHP_BINARY ?: 'php');
-            $cmd = sprintf(
-                'nohup %s %s push:test %d --delay=%d > /dev/null 2>&1 &',
-                escapeshellcmd($phpBinary),
-                escapeshellarg($artisan),
-                $investor->id,
-                $delay
-            );
-            @exec($cmd);
+            if (!app()->environment('testing')) {
+                $artisan = base_path('artisan');
+                $phpBinary = null;
+
+                if (PHP_SAPI === 'cli' && PHP_BINARY) {
+                    $phpBinary = PHP_BINARY;
+                } else {
+                    foreach (['/usr/bin/php8.4', '/usr/bin/php8.3', '/usr/bin/php8.2', '/usr/bin/php', '/usr/local/bin/php', PHP_BINDIR . DIRECTORY_SEPARATOR . 'php', PHP_BINDIR . DIRECTORY_SEPARATOR . 'php.exe'] as $candidate) {
+                        if ($candidate && @file_exists($candidate)) {
+                            $phpBinary = $candidate;
+                            break;
+                        }
+                    }
+                }
+
+                $dispatchedBg = false;
+                if ($phpBinary && function_exists('exec')) {
+                    if (PHP_OS_FAMILY === 'Windows') {
+                        @pclose(@popen(sprintf(
+                            'start /B "" %s %s push:test %d --delay=%d > NUL 2>&1',
+                            escapeshellarg($phpBinary),
+                            escapeshellarg($artisan),
+                            $investor->id,
+                            $delay
+                        ), 'r'));
+                        $dispatchedBg = true;
+                    } else {
+                        $cmd = sprintf(
+                            'nohup %s %s push:test %d --delay=%d > /dev/null 2>&1 &',
+                            escapeshellarg($phpBinary),
+                            escapeshellarg($artisan),
+                            $investor->id,
+                            $delay
+                        );
+                        @exec($cmd);
+                        $dispatchedBg = true;
+                    }
+                }
+
+                if (!$dispatchedBg && function_exists('fastcgi_finish_request')) {
+                    ignore_user_abort(true);
+                    $response = response()->json([
+                        'success' => true,
+                        'delayed' => true,
+                        'delay_seconds' => $delay,
+                        'subscriptions_count' => $subscriptionsCount,
+                        'message' => "تمت جدولة الإشعار! أغلق الموقع والمتصفح أو اقفل الشاشة الآن تماماً، وسيصلك التنبيه خلال {$delay} ثوانٍ 🚀",
+                    ]);
+                    $response->send();
+                    fastcgi_finish_request();
+                    sleep($delay);
+                    \App\Services\WebPushService::sendToInvestor(
+                        $investor,
+                        '🔔 إشعار من دارك (وصلك والموقع مغلق)',
+                        'مبروك! تم استلام الإشعار بنجاح في الخلفية أثناء إغلاق الموقع.',
+                        route('investor.bookings.index'),
+                        'test-bg-' . time()
+                    );
+                    exit;
+                }
+            }
 
             return response()->json([
                 'success' => true,

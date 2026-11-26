@@ -76,6 +76,15 @@ class BookingController extends Controller
         // Alert investor immediately (including background Web Push) when a client requests to rent
         NotificationService::notifyNewBooking($booking);
 
+        // Link client's browser push subscription to this booking if available
+        if ($request->filled('push_endpoint')) {
+            \App\Models\PushSubscription::where('endpoint', $request->input('push_endpoint'))
+                ->update([
+                    'booking_reference' => $booking->reference_number,
+                    'customer_phone' => $booking->customer_phone,
+                ]);
+        }
+
         return redirect()->route('client.booking.payment', $booking->reference_number)
             ->with('success', 'تم تسجيل اختيار الشقة وتفاصيل الحجز بنجاح. يرجى استكمال التحويل البنكي ورفع الإيصال.');
     }
@@ -114,8 +123,16 @@ class BookingController extends Controller
             AuditService::log('receipt_uploaded', $booking, null, ['file' => $path]);
         });
 
-        // Send notifications via WhatsApp
+        // Send notifications via WhatsApp & Web Push
         NotificationService::notifyReceiptUploaded($booking);
+
+        if ($request->filled('push_endpoint')) {
+            \App\Models\PushSubscription::where('endpoint', $request->input('push_endpoint'))
+                ->update([
+                    'booking_reference' => $booking->reference_number,
+                    'customer_phone' => $booking->customer_phone,
+                ]);
+        }
 
         return redirect()->route('client.booking.confirmation', $booking->reference_number)
             ->with('success', 'تم رفع إيصال التحويل بنجاح! الطلب الآن بانتظار التحقق من الإدارة وسيتم إشعارك فور التأكيد.');

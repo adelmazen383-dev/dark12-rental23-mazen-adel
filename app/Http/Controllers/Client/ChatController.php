@@ -140,6 +140,14 @@ class ChatController extends Controller
             }
         }
 
+        if ($request->filled('push_endpoint')) {
+            \App\Models\PushSubscription::where('endpoint', $request->input('push_endpoint'))
+                ->update([
+                    'conversation_token' => $conversation->customer_token,
+                    'customer_phone' => $conversation->customer_phone,
+                ]);
+        }
+
         return redirect()->route('client.chat.show', $conversation->customer_token);
     }
 

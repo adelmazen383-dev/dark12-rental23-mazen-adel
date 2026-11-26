@@ -89,13 +89,19 @@
 
     <!-- Image Gallery -->
     @if($images->isNotEmpty())
-        <div class="space-y-2">
-            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">صور الشقة والتجهيزات</h3>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div class="space-y-2 animate-fade-in">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">صور الشقة والتجهيزات (اضغط للتكبير)</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 @foreach($images as $img)
-                    <a href="{{ asset('storage/' . $img->file_path) }}" target="_blank" class="block h-28 sm:h-36 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 group">
-                        <img src="{{ asset('storage/' . $img->file_path) }}" alt="صورة الشقة" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.onerror=null; this.src='{{ asset('images/apartment-default.svg') }}';">
-                    </a>
+                    <button type="button" onclick="openGalleryLightbox({{ $loop->index }})"
+                        class="block w-full h-28 sm:h-36 rounded-2xl overflow-hidden bg-gray-100 border border-gray-200 group relative shadow-xs hover:shadow-md transition btn-press">
+                        <img src="{{ asset('storage/' . $img->file_path) }}" alt="صورة الشقة {{ $apartment->apartment_number }}"
+                             class="js-gallery-img w-full h-full object-cover group-hover:scale-110 transition duration-500"
+                             onerror="this.onerror=null; this.src='{{ asset('images/apartment-default.svg') }}';">
+                        <span class="absolute inset-0 bg-slate-950/0 group-hover:bg-slate-950/20 transition flex items-center justify-center">
+                            <i class="fa-solid fa-magnifying-glass-plus text-white opacity-0 group-hover:opacity-100 transition text-lg drop-shadow"></i>
+                        </span>
+                    </button>
                 @endforeach
             </div>
         </div>
@@ -268,6 +274,7 @@
                     <!-- Booking Form -->
                     <form action="{{ route('client.booking.store', $apartment->id) }}" method="POST" class="space-y-3" id="bookingForm">
                         @csrf
+                        <input type="hidden" name="push_endpoint" class="js-push-endpoint" value="">
                         <div>
                             <label class="block text-[11px] font-semibold text-gray-700 mb-1">اسم العميل الثلاثي *</label>
                             <input type="text" name="customer_name" required value="{{ old('customer_name') }}"
@@ -320,7 +327,7 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20">
+                        <button type="submit" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 btn-press btn-shimmer">
                             <i class="fa-solid fa-arrow-left"></i>
                             <span>تأكيد الاختيار والانتقال للتحويل البنكي</span>
                         </button>
@@ -350,6 +357,7 @@
                     <!-- Chat Start Form -->
                     <form action="{{ route('client.chat.start', $apartment->id) }}" method="POST" class="space-y-3">
                         @csrf
+                        <input type="hidden" name="push_endpoint" class="js-push-endpoint" value="">
                         <div>
                             <label class="block text-[11px] font-semibold text-gray-700 mb-1">اسمك الكريم *</label>
                             <input type="text" name="customer_name" required value="{{ old('customer_name') }}" placeholder="اسمك"
@@ -431,10 +439,62 @@
     </div>
 
 </div>
+
+<!-- Gallery Lightbox Modal -->
+<div id="galleryLightbox" class="hidden fixed inset-0 z-50 bg-slate-950/92 backdrop-blur-md flex items-center justify-center p-4" onclick="closeGalleryLightbox(event)">
+    <button type="button" onclick="closeGalleryLightbox()" class="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
+        <i class="fa-solid fa-xmark text-lg"></i>
+    </button>
+    <button type="button" onclick="stepGallery(-1)" class="absolute right-3 sm:right-6 w-11 h-11 rounded-full bg-white/10 hover:bg-amber-500 text-white hover:text-slate-950 flex items-center justify-center transition">
+        <i class="fa-solid fa-chevron-right"></i>
+    </button>
+    <img id="lightboxImg" src="" alt="معاينة الشقة" class="max-h-[84vh] max-w-[90vw] rounded-2xl shadow-2xl object-contain transition-transform duration-300 scale-95">
+    <button type="button" onclick="stepGallery(1)" class="absolute left-3 sm:left-6 w-11 h-11 rounded-full bg-white/10 hover:bg-amber-500 text-white hover:text-slate-950 flex items-center justify-center transition">
+        <i class="fa-solid fa-chevron-left"></i>
+    </button>
+    <div id="lightboxCounter" class="absolute bottom-5 px-3 py-1 rounded-full bg-white/10 text-white text-xs font-mono"></div>
+</div>
 @endsection
 
 @section('scripts')
 <script>
+    const galleryImgs = Array.from(document.querySelectorAll('.js-gallery-img')).map(img => img.src);
+    let currentGalleryIdx = 0;
+
+    function openGalleryLightbox(idx) {
+        if (!galleryImgs.length) return;
+        currentGalleryIdx = idx;
+        const modal = document.getElementById('galleryLightbox');
+        const img = document.getElementById('lightboxImg');
+        const counter = document.getElementById('lightboxCounter');
+        img.src = galleryImgs[currentGalleryIdx];
+        counter.textContent = (currentGalleryIdx + 1) + ' / ' + galleryImgs.length;
+        modal.classList.remove('hidden');
+        requestAnimationFrame(() => img.classList.remove('scale-95'));
+    }
+
+    function closeGalleryLightbox(e) {
+        if (e && e.target && e.target.id !== 'galleryLightbox') return;
+        const modal = document.getElementById('galleryLightbox');
+        const img = document.getElementById('lightboxImg');
+        img.classList.add('scale-95');
+        modal.classList.add('hidden');
+    }
+
+    function stepGallery(dir) {
+        if (!galleryImgs.length) return;
+        currentGalleryIdx = (currentGalleryIdx + dir + galleryImgs.length) % galleryImgs.length;
+        document.getElementById('lightboxImg').src = galleryImgs[currentGalleryIdx];
+        document.getElementById('lightboxCounter').textContent = (currentGalleryIdx + 1) + ' / ' + galleryImgs.length;
+    }
+
+    document.addEventListener('keydown', function (e) {
+        const modal = document.getElementById('galleryLightbox');
+        if (!modal || modal.classList.contains('hidden')) return;
+        if (e.key === 'Escape') closeGalleryLightbox();
+        if (e.key === 'ArrowLeft') stepGallery(1);
+        if (e.key === 'ArrowRight') stepGallery(-1);
+    });
     const dailyPrice = {{ (float)$apartment->daily_price }};
     const insuranceAmount = {{ (float)$apartment->insurance_amount }};
     const extraFees = {{ (float)$apartment->extra_fees }};

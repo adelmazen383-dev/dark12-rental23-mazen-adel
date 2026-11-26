@@ -12,10 +12,20 @@ class PushSubscription extends Model
     protected $fillable = [
         'user_id',
         'investor_id',
+        'subscriber_type',
+        'customer_phone',
+        'conversation_token',
+        'booking_reference',
         'endpoint',
         'public_key',
         'auth_token',
         'content_encoding',
+        'device_label',
+        'last_notified_at',
+    ];
+
+    protected $casts = [
+        'last_notified_at' => 'datetime',
     ];
 
     public function user()

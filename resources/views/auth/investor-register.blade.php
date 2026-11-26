@@ -4,14 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>تسجيل مستثمر وشقة جديدة - منصة دَارِك لتنظيم الإيجار</title>
+    <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+    <link rel="icon" type="image/png" sizes="48x48" href="{{ asset('images/favicon-48.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/apple-touch-icon.png') }}">
+    <title>تسجيل مستثمر وشقة جديدة - منصة دارك لتنظيم الإيجار</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>body { font-family: 'Cairo', sans-serif; }</style>
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        @keyframes authFloatIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .auth-card-in { animation: authFloatIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    </style>
 </head>
 <body class="bg-slate-900 min-h-screen py-10 px-4 selection:bg-amber-500 selection:text-white">
-    <div class="max-w-3xl mx-auto bg-white rounded-3xl shadow-2xl p-6 sm:p-10 border border-slate-100">
+    <div class="max-w-3xl mx-auto bg-white rounded-3xl shadow-2xl p-6 sm:p-10 border border-slate-100 auth-card-in">
         <!-- Header -->
         <div class="text-center mb-8 border-b border-gray-100 pb-6">
             <div class="w-20 h-20 mx-auto mb-3 rounded-2xl overflow-hidden bg-white p-1 border-2 border-amber-400 shadow-md flex items-center justify-center">

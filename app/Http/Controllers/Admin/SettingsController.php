@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\PasswordResetOtpMail;
 use App\Models\{Setting, PlatformBankAccount};
-use App\Services\AuditService;
+use App\Services\{AuditService, MailConfigService};
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Mail;
 
 class SettingsController extends Controller
 {
@@ -14,7 +17,10 @@ class SettingsController extends Controller
         $settings = Setting::all()->pluck('value', 'key');
         $bankAccounts = PlatformBankAccount::all();
 
-        return view('admin.settings.index', compact('settings', 'bankAccounts'));
+        $mailConfigured = !empty($settings['mail_host']) && ($settings['mail_mailer'] ?? '') === 'smtp'
+            || (config('mail.default') === 'smtp' && config('mail.mailers.smtp.host') !== '127.0.0.1');
+
+        return view('admin.settings.index', compact('settings', 'bankAccounts', 'mailConfigured'));
     }
 
     public function update(Request $request)
@@ -28,6 +34,15 @@ class SettingsController extends Controller
             'admin_whatsapp' => 'nullable|string|max:20',
             'low_balance_threshold' => 'nullable|numeric|min:0|max:100000',
             'subscription_reminder_days' => 'nullable|integer|min:1|max:365',
+            // Mail / SMTP settings
+            'mail_mailer' => 'nullable|in:smtp,log',
+            'mail_host' => 'nullable|string|max:255',
+            'mail_port' => 'nullable|integer|min:1|max:65535',
+            'mail_encryption' => 'nullable|in:tls,ssl,none',
+            'mail_username' => 'nullable|string|max:255',
+            'mail_password' => 'nullable|string|max:255',
+            'mail_from_address' => 'nullable|email|max:255',
+            'mail_from_name' => 'nullable|string|max:255',
         ]);
 
         $keys = [
@@ -39,6 +54,13 @@ class SettingsController extends Controller
             'admin_whatsapp',
             'low_balance_threshold',
             'subscription_reminder_days',
+            'mail_mailer',
+            'mail_host',
+            'mail_port',
+            'mail_encryption',
+            'mail_username',
+            'mail_from_address',
+            'mail_from_name',
         ];
 
         foreach ($keys as $key) {
@@ -47,9 +69,42 @@ class SettingsController extends Controller
             }
         }
 
+        // Encrypt SMTP password only if explicitly provided (keep existing if blank)
+        if ($request->filled('mail_password')) {
+            Setting::setValue('mail_password', Crypt::encryptString($request->input('mail_password')), 'كلمة مرور خادم البريد SMTP');
+        }
+
         AuditService::log('settings_updated', null, null, $request->only($keys));
 
         return back()->with('success', 'تم حفظ الإعدادات بنجاح.');
+    }
+
+    /**
+     * Send a test email using current SMTP settings so admin can verify OTP delivery immediately.
+     */
+    public function testMail(Request $request)
+    {
+        $request->validate([
+            'test_email' => 'required|email|max:255',
+        ], [
+            'test_email.required' => 'يرجى إدخال البريد الإلكتروني المستهدف للاختبار.',
+            'test_email.email' => 'صيغة البريد الإلكتروني غير صحيحة.',
+        ]);
+
+        MailConfigService::apply();
+
+        if (!MailConfigService::isRealDeliveryConfigured()) {
+            return back()->with('error', 'خدمة البريد (SMTP) غير مفعلة بعد! يرجى إدخال بيانات خادم SMTP وحفظ التعديلات أولاً ثم الضغط على اختبار الإرسال.');
+        }
+
+        try {
+            $sampleOtp = (string) random_int(100000, 999999);
+            Mail::to($request->input('test_email'))->send(new PasswordResetOtpMail($sampleOtp, auth()->user()->name ?? 'المدير'));
+
+            return back()->with('success', "تم إرسال رسالة اختبار بنجاح إلى ({$request->input('test_email')})! تحقق من صندوق الوارد أو مجلد Spam.");
+        } catch (\Throwable $e) {
+            return back()->with('error', 'فشل الاتصال بخادم البريد (SMTP): ' . $e->getMessage());
+        }
     }
 
     public function store(Request $request)

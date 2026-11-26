@@ -101,6 +101,122 @@
         </form>
     </div>
 
+    <!-- Email & SMTP Settings for OTP Delivery -->
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
+            <div>
+                <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-envelope-circle-check text-indigo-600"></i>
+                    <span>إعدادات البريد الإلكتروني وإرسال رمز التحقق (SMTP / OTP)</span>
+                </h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">مطلوب لإرسال رمز استعادة كلمة المرور (OTP) إلى بريد المستثمرين والمشرفين</p>
+            </div>
+            @if(!empty($mailConfigured))
+                <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 w-fit">
+                    <i class="fa-solid fa-circle-check ml-1"></i> SMTP مفعّل
+                </span>
+            @else
+                <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200 w-fit">
+                    <i class="fa-solid fa-triangle-exclamation ml-1"></i> غير مفعّل (وضع السجل المحلي)
+                </span>
+            @endif
+        </div>
+
+        <!-- Quick Presets -->
+        <div class="flex flex-wrap items-center gap-2 text-[11px]">
+            <span class="font-bold text-slate-600">تعبئة سريعة:</span>
+            <button type="button" onclick="applyMailPreset('smtp.gmail.com', 587, 'tls')" class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 font-bold transition">Gmail (App Password)</button>
+            <button type="button" onclick="applyMailPreset('smtp.hostinger.com', 465, 'ssl')" class="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 font-bold transition">Hostinger</button>
+            <button type="button" onclick="applyMailPreset('smtp.zoho.com', 465, 'ssl')" class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 font-bold transition">Zoho Mail</button>
+            <button type="button" onclick="applyMailPreset('smtp-relay.brevo.com', 587, 'tls')" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 font-bold transition">Brevo (مجاني 300/يوم)</button>
+        </div>
+
+        <form action="{{ route('admin.settings.update') }}" method="POST" class="space-y-4">
+            @csrf
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">وضع الإرسال *</label>
+                    <select name="mail_mailer" id="mail_mailer" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500">
+                        <option value="smtp" {{ ($settings['mail_mailer'] ?? '') === 'smtp' ? 'selected' : '' }}>إرسال فعلي عبر SMTP (مطلوب)</option>
+                        <option value="log" {{ ($settings['mail_mailer'] ?? 'log') === 'log' ? 'selected' : '' }}>معطل (حفظ في السجل فقط)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">خادم SMTP (Host)</label>
+                    <input type="text" name="mail_host" id="mail_host" value="{{ $settings['mail_host'] ?? '' }}" dir="ltr" placeholder="smtp.gmail.com"
+                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 text-left">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">المنفذ (Port)</label>
+                        <input type="number" name="mail_port" id="mail_port" value="{{ $settings['mail_port'] ?? 587 }}" dir="ltr" placeholder="587"
+                            class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 text-left">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">التشفير</label>
+                        <select name="mail_encryption" id="mail_encryption" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500">
+                            <option value="tls" {{ ($settings['mail_encryption'] ?? 'tls') === 'tls' ? 'selected' : '' }}>TLS (587)</option>
+                            <option value="ssl" {{ ($settings['mail_encryption'] ?? '') === 'ssl' ? 'selected' : '' }}>SSL (465)</option>
+                            <option value="none" {{ ($settings['mail_encryption'] ?? '') === 'none' ? 'selected' : '' }}>بدون</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">اسم المستخدم / الإيميل (Username)</label>
+                    <input type="text" name="mail_username" value="{{ $settings['mail_username'] ?? '' }}" dir="ltr" placeholder="your-email@gmail.com"
+                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 text-left">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">كلمة مرور التطبيق (App Password)</label>
+                    <input type="password" name="mail_password" dir="ltr" placeholder="{{ !empty($settings['mail_password']) ? '•••••••• (محفوظة - اتركها فارغة للإبقاء)' : 'أدخل App Password' }}"
+                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 text-left">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">بريد المرسل (From Email)</label>
+                    <input type="email" name="mail_from_address" value="{{ $settings['mail_from_address'] ?? '' }}" dir="ltr" placeholder="noreply@thiqa.me"
+                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 text-left">
+                </div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-[11px] text-indigo-900 leading-relaxed">
+                <strong>ملاحظة لـ Gmail:</strong> فعّل التحقق بخطوتين (2-Step Verification) في حساب Google ثم أنشئ <strong>App Password</strong> من إعدادات الأمان وأدخله في خانة كلمة المرور أعلاه (وليس كلمة مرور حساب Gmail العادية).
+            </div>
+
+            <div class="flex justify-end">
+                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition shadow-sm">
+                    حفظ إعدادات البريد (SMTP)
+                </button>
+            </div>
+        </form>
+
+        <!-- Live Test Email Form -->
+        <form action="{{ route('admin.settings.test-mail') }}" method="POST" class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            @csrf
+            <div class="flex-1">
+                <input type="email" name="test_email" required dir="ltr" value="{{ auth()->user()->email }}" placeholder="أدخل إيميلاً لإرسال رسالة OTP تجريبية..."
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 text-left">
+            </div>
+            <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-sm whitespace-nowrap">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span>إرسال بريد اختبار الآن</span>
+            </button>
+        </form>
+    </div>
+
+    <script>
+        function applyMailPreset(host, port, enc) {
+            document.getElementById('mail_mailer').value = 'smtp';
+            document.getElementById('mail_host').value = host;
+            document.getElementById('mail_port').value = port;
+            document.getElementById('mail_encryption').value = enc;
+        }
+    </script>
+
     <!-- Platform Bank Accounts Management -->
     <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
         <div class="flex items-center justify-between border-b pb-3">

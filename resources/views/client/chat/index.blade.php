@@ -90,6 +90,11 @@
         </div>
 
         @if($conversations->isNotEmpty())
+            @include('partials.client-push-banner', [
+                'pushTitle' => 'فعّل إشعارات محادثاتك على هذا الجهاز',
+                'pushSubtitle' => 'لتصلك ردود ملّاك الشقق وإشعارات الحجز في نفس اللحظة حتى والموقع مغلق.'
+            ])
+
             <!-- Conversations Cards -->
             <div class="space-y-3">
                 <div class="flex items-center justify-between">

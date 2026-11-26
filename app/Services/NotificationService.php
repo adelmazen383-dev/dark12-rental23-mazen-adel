@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use App\Models\NotificationLog;
@@ -65,6 +66,13 @@ class NotificationService
             );
         }
 
+        WebPushService::sendToAdmins(
+            "🔔 طلب حجز جديد #{$booking->reference_number}",
+            "شقة {$apartment->apartment_number} | {$booking->customer_name} | " . number_format((float) $booking->total_amount, 0) . " ريال",
+            route('admin.bookings.show', $booking->id),
+            'admin-booking-new-' . $booking->id
+        );
+
         $adminPhone = \App\Models\Setting::getValue('admin_whatsapp', '');
         if ($adminPhone) {
             self::sendWhatsApp($adminPhone, $message, 'admin', 'booking', $booking->id);
@@ -72,7 +80,7 @@ class NotificationService
     }
 
     /**
-     * Send booking confirmation notification.
+     * Send booking confirmation notification to BOTH customer and investor instantly.
      */
     public static function notifyBookingConfirmed($booking): void
     {
@@ -87,10 +95,18 @@ class NotificationService
         $message .= "تاريخ الخروج: {$booking->checkout_date->format('Y-m-d')}\n";
         $message .= "المبلغ: {$booking->total_amount} ريال";
 
-        // Notify customer
+        // Notify customer (WhatsApp log + instant background Web Push)
         self::sendWhatsApp($booking->customer_phone, $message, 'customer', 'booking', $booking->id);
 
-        // Notify investor (WhatsApp log + background Web Push)
+        WebPushService::sendToClientByBooking(
+            $booking,
+            "✅ تم تأكيد حجزك رقم #{$booking->reference_number}!",
+            "شقة {$apartment->apartment_number} (الدور {$apartment->floor_number}) | كود استلام المفتاح بالاستقبال: {$booking->reception_code}",
+            route('client.booking.confirmation', $booking->reference_number),
+            'client-booking-confirmed-' . $booking->id
+        );
+
+        // Notify investor (WhatsApp log + instant background Web Push)
         if ($investor) {
             if ($investor->whatsapp) {
                 self::sendWhatsApp($investor->whatsapp, $message, 'investor', 'booking', $booking->id);
@@ -113,7 +129,7 @@ class NotificationService
     }
 
     /**
-     * Send receipt uploaded notification.
+     * Send receipt uploaded notification to investor and admin.
      */
     public static function notifyReceiptUploaded($booking): void
     {
@@ -142,6 +158,13 @@ class NotificationService
                 'booking-receipt-' . $booking->id
             );
         }
+
+        WebPushService::sendToAdmins(
+            "📄 إيصال تحويل بانتظار المراجعة #{$booking->reference_number}",
+            "شقة {$apartment->apartment_number} | {$booking->customer_name} | " . number_format((float) $booking->total_amount, 0) . " ريال",
+            route('admin.bookings.show', $booking->id),
+            'admin-receipt-' . $booking->id
+        );
 
         $adminPhone = \App\Models\Setting::getValue('admin_whatsapp', '');
         if ($adminPhone) {
@@ -176,6 +199,13 @@ class NotificationService
                 'inspection-' . $inspection->id
             );
         }
+
+        WebPushService::sendToAdmins(
+            "👁 طلب معاينة جديد - شقة {$apartment->apartment_number}",
+            "العميل: {$inspection->customer_name} ({$inspection->customer_phone})",
+            route('admin.inspections.index'),
+            'admin-inspection-' . $inspection->id
+        );
 
         $adminPhone = \App\Models\Setting::getValue('admin_whatsapp', '');
         if ($adminPhone) {

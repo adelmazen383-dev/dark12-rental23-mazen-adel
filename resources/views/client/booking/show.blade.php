@@ -2,10 +2,16 @@
 
 @section('title', 'تفاصيل الحجز - ' . $booking->reference_number)
 @section('meta_robots', 'noindex, nofollow')
+@section('push_booking_reference', $booking->reference_number)
 
 @section('content')
 <div class="space-y-6 max-w-xl mx-auto">
-    <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100">
+    @include('partials.client-push-banner', [
+        'pushTitle' => 'فعّل إشعارات حالة الحجز الفورية',
+        'pushSubtitle' => 'لتصلك أي تحديثات أو تأكيد الحجز مباشرة على جوالك حتى والموقع مغلق.'
+    ])
+
+    <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 animate-fade-in">
         <div class="flex items-center justify-between pb-4 border-b border-gray-100">
             <div>
                 <span class="text-xs text-gray-400 font-semibold block">الرقم المرجعي</span>

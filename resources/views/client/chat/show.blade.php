@@ -2,9 +2,10 @@
 
 @section('title', 'محادثة المالك - شقة ' . $conversation->apartment->apartment_number)
 @section('meta_robots', 'noindex, nofollow')
+@section('push_conversation_token', $conversation->customer_token)
 
 @section('content')
-<div class="max-w-2xl mx-auto px-2 sm:px-4 py-3 flex-1 flex flex-col h-[calc(100vh-5rem)]">
+<div class="max-w-2xl mx-auto px-2 sm:px-4 py-3 flex-1 flex flex-col h-[calc(100vh-5rem)] space-y-2.5">
 
     <!-- Chat Header Card -->
     <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm flex items-center justify-between mb-3 flex-shrink-0">
@@ -57,6 +58,14 @@
     <div class="flex items-center gap-2 px-4 py-2 rounded-xl {{ $badgeClass }} text-xs font-bold border border-slate-200/80 shadow-sm flex-shrink-0">
         <i class="fa-solid {{ $badgeIcon }}"></i>
         <span>حالة المحادثة: {{ $badgeLabel }}</span>
+    </div>
+
+    <!-- Client Push Notification Opt-in Bar -->
+    <div class="flex-shrink-0">
+        @include('partials.client-push-banner', [
+            'pushTitle' => 'فعّل إشعارات الرد الفوري من المالك',
+            'pushSubtitle' => 'حتى لو أغلقت الموقع أو الهاتف، سيصلك إشعار فوري فور رد المالك أو الإدارة.'
+        ])
     </div>
 
     {{-- ===== CONFIRMED BOOKING INFO ===== --}}
@@ -239,6 +248,9 @@
         .catch(err => console.error(err));
     };
 
+    let lastMsgSignature = null;
+    let knownMessageIds = new Set(@json($conversation->messages->pluck('id')->values()));
+
     function fetchMessages() {
         fetch(getUrl, {
             headers: { 'Accept': 'application/json' }
@@ -246,14 +258,32 @@
         .then(r => r.json())
         .then(data => {
             if (data.messages) {
-                renderMessages(data.messages);
+                // Detect newly arrived incoming messages from landlord or admin
+                const newIncoming = data.messages.filter(m => !knownMessageIds.has(m.id) && m.sender_type !== 'customer');
+                data.messages.forEach(m => knownMessageIds.add(m.id));
+
+                const sig = JSON.stringify(data.messages.map(m => [m.id, m.message, m.is_edited, m.is_deleted]));
+                if (sig !== lastMsgSignature) {
+                    const shouldScroll = lastMsgSignature !== null;
+                    lastMsgSignature = sig;
+                    renderMessages(data.messages);
+                    if (shouldScroll) scrollToBottom();
+                }
+
+                if (newIncoming.length > 0 && window.DarkClientPush) {
+                    const latest = newIncoming[newIncoming.length - 1];
+                    const senderTitle = latest.sender_type === 'admin' ? '🏛 رسالة من إدارة منصة دارك' : ('💬 رد من المالك (' + (latest.sender_name || '') + ')');
+                    window.DarkClientPush.playChime();
+                    window.DarkClientPush.vibratePhone();
+                    window.DarkClientPush.showToast(senderTitle, latest.message, '#');
+                }
             }
         })
         .catch(err => console.error(err));
     }
 
-    // Polling every 3.5 seconds
-    setInterval(fetchMessages, 3500);
+    // Polling every 3 seconds
+    setInterval(fetchMessages, 3000);
 
     function renderMessages(messages) {
         let html = '';
@@ -293,7 +323,7 @@
             let editedBadge = (m.is_edited && !m.is_deleted) ? `<span class="text-[9px] opacity-80">(معدّلة)</span>` : '';
 
             html += `
-                <div class="flex flex-col ${alignClass}" id="msg-box-${m.id}">
+                <div class="flex flex-col ${alignClass} msg-bubble-anim" id="msg-box-${m.id}">
                     <div class="max-w-[85%] sm:max-w-[75%] rounded-2xl p-3 text-xs shadow-sm ${bubbleClass}">
                         <div class="flex items-center justify-between gap-3 mb-1 text-[10px] ${headerClass}">
                             <span>${senderLabel}</span>

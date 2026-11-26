@@ -88,16 +88,28 @@ class ChatController extends Controller
 
         $conversation->update(['last_message_at' => now()]);
 
+        $conversation->loadMissing('apartment', 'booking');
+        $aptNumber = $conversation->apartment?->apartment_number ?? '';
+
         // Notify customer via phone with direct link to return to their chat!
         if ($conversation->customer_phone) {
             \App\Services\NotificationService::sendWhatsApp(
                 $conversation->customer_phone,
-                "💬 رد مالك شقة ({$conversation->apartment->apartment_number}):\n\"{$guardResult['cleaned_message']}\"\nرابط متابعة المحادثة والرد مباشرة:\n" . route('client.chat.show', $conversation->customer_token),
+                "💬 رد مالك شقة ({$aptNumber}):\n\"{$guardResult['cleaned_message']}\"\nرابط متابعة المحادثة والرد مباشرة:\n" . route('client.chat.show', $conversation->customer_token),
                 'customer',
                 'chat',
                 $conversation->id
             );
         }
+
+        // Send instant background Web Push notification to client (even if website is closed)
+        \App\Services\WebPushService::sendToClientByConversation(
+            $conversation,
+            "💬 رد جديد من مالك شقة {$aptNumber}",
+            \Illuminate\Support\Str::limit($guardResult['cleaned_message'], 120),
+            route('client.chat.show', $conversation->customer_token),
+            'client-chat-' . $conversation->id
+        );
 
         if ($request->wantsJson()) {
             return response()->json([

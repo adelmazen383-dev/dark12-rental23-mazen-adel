@@ -139,6 +139,14 @@ class InvestorController extends Controller
             $investor->id
         );
 
+        \App\Services\WebPushService::sendToInvestor(
+            $investor,
+            '⚠️ تعذر اعتماد طلب المستثمر',
+            $request->rejection_reason,
+            route('investor.profile.edit'),
+            'investor-rejected-' . $investor->id
+        );
+
         return back()->with('success', 'تم رفض طلب المستثمر وتسجيل سبب الرفض.');
     }
 
@@ -171,6 +179,14 @@ class InvestorController extends Controller
             $investor->id
         );
 
+        \App\Services\WebPushService::sendToInvestor(
+            $investor,
+            '⚠️ تم إيقاف استقبال الحجوزات مؤقتاً',
+            $request->suspension_reason,
+            route('investor.dashboard'),
+            'investor-suspended-' . $investor->id
+        );
+
         return back()->with('success', 'تم إيقاف المستثمر وإخفاء شققه عن الحجوزات الجديدة. الحجوزات المؤكدة السابقة ما زالت قائمة للمعالجة الإدارية.');
     }
 
@@ -186,6 +202,14 @@ class InvestorController extends Controller
         $investor->apartments()->update(['is_active' => true]);
 
         AuditService::log('investor_reactivated', $investor, $old, $investor->toArray());
+
+        \App\Services\WebPushService::sendToInvestor(
+            $investor,
+            '✅ تم إعادة تفعيل حسابك كمستثمر!',
+            'شققك نشطة الآن ويمكنك استقبال الحجوزات والمحادثات فوراً.',
+            route('investor.dashboard'),
+            'investor-reactivated-' . $investor->id
+        );
 
         return back()->with('success', 'تم إعادة تفعيل المستثمر وتنشيط شققه.');
     }
@@ -214,6 +238,14 @@ class InvestorController extends Controller
             'investor',
             'wallet',
             $wallet->id
+        );
+
+        \App\Services\WebPushService::sendToInvestor(
+            $investor,
+            "💳 تم شحن محفظتك بمبلغ " . number_format((float) $request->amount, 0) . " ريال!",
+            "رصيدك الحالي: " . number_format((float) $wallet->balance, 2) . " ريال | {$request->notes}",
+            route('investor.wallet.index'),
+            'wallet-deposit-' . $wallet->id . '-' . time()
         );
 
         return back()->with('success', 'تم شحن رصيد المحفظة بنجاح.');

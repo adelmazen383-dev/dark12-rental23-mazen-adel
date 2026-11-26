@@ -1,9 +1,9 @@
 // =========================================================================
-// Service Worker for Background Push Notifications (Works even when closed)
-// منصة دَارِك لتنظيم الإيجار
+// Service Worker for Instant Background Push Notifications (iOS PWA, Android, Desktop)
+// منصة دارك لتنظيم الإيجار
 // =========================================================================
 
-const SW_VERSION = 'dark-sw-v6';
+const SW_VERSION = 'dark-sw-v7';
 const BASE_URL = self.location.pathname.startsWith('/app/')
     ? (self.location.origin + '/app')
     : self.location.origin;
@@ -16,15 +16,16 @@ self.addEventListener('activate', function (event) {
     event.waitUntil(self.clients.claim());
 });
 
-// Push Event: Received from Web Push server (FCM / APNs / WNS / Autopush) even when browser/app is closed
+// Push Event: Triggered by APNs (iPhone/Safari), FCM (Android/Chrome), WNS (Edge), Autopush (Firefox)
+// even when the website and browser are completely closed.
 self.addEventListener('push', function (event) {
     let data = {
-        title: 'منصة دَارِك - إشعار جديد 🔔',
-        body: 'وصلك طلب جديد بخصوص شقتك',
-        url: BASE_URL + '/investor/bookings',
+        title: 'منصة دارك - إشعار جديد 🔔',
+        body: 'لديك تحديث جديد في منصة دارك',
+        url: BASE_URL + '/',
         icon: BASE_URL + '/images/icon-192.png',
-        badge: BASE_URL + '/images/icon-192.png',
-        tag: 'investor-alert'
+        badge: BASE_URL + '/images/favicon-96.png',
+        tag: 'dark-alert-' + Date.now()
     };
 
     if (event.data) {
@@ -33,83 +34,125 @@ self.addEventListener('push', function (event) {
             data = { ...data, ...parsed };
         } catch (e) {
             try {
-                data.body = event.data.text() || data.body;
+                const txt = event.data.text();
+                if (txt) data.body = txt;
             } catch (_) {}
         }
     }
 
-    const title = data.title || 'منصة دَارِك';
-    const notifUrl = data.url || (BASE_URL + '/investor/bookings');
+    const title = data.title || 'منصة دارك';
+    const notifUrl = normalizeTargetUrl(data.url);
     const notifIcon = data.icon || (BASE_URL + '/images/icon-192.png');
-    const notifBadge = data.badge || (BASE_URL + '/images/icon-192.png');
+    const notifBadge = data.badge || (BASE_URL + '/images/favicon-96.png');
 
-    const showNotificationWithFallback = async function () {
-        // Attempt 1: Rich notification with vibration and actions
+    const handlePush = async function () {
+        // Notify any open windows immediately so they can update live UI & play chime
+        try {
+            const openClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+            openClients.forEach(function (client) {
+                try {
+                    client.postMessage({
+                        type: 'DARK_PUSH_RECEIVED',
+                        payload: {
+                            title: title,
+                            body: data.body,
+                            url: notifUrl,
+                            tag: data.tag
+                        }
+                    });
+                } catch (_) {}
+            });
+        } catch (_) {}
+
+        // Update app badge if supported (iOS 16.4+ PWA & Android)
+        try {
+            if (self.navigator && typeof self.navigator.setAppBadge === 'function') {
+                await self.navigator.setAppBadge(1);
+            }
+        } catch (_) {}
+
+        // Attempt 1: Standard rich notification (Android / Windows / macOS)
         try {
             await self.registration.showNotification(title, {
                 body: data.body,
                 icon: notifIcon,
                 badge: notifBadge,
-                vibrate: [300, 100, 300, 100, 400],
+                vibrate: [250, 100, 250, 100, 350],
                 dir: 'rtl',
                 lang: 'ar',
+                silent: false,
                 data: { url: notifUrl },
                 tag: data.tag || ('dark-alert-' + Date.now()),
-                renotify: true,
-                requireInteraction: true,
-                actions: [
-                    { action: 'open', title: 'عرض التفاصيل' }
-                ]
+                renotify: true
             });
             return;
         } catch (richErr) {
-            console.warn('Rich notification failed, trying simple notification:', richErr);
+            console.warn('Rich notification fallback triggered:', richErr);
         }
 
-        // Attempt 2: Minimal safe notification (guaranteed on all mobile browsers)
+        // Attempt 2: Ultra-compatible minimal notification (guaranteed on all iOS Safari PWA builds)
+        // Apple APNs strictly requires showNotification() to resolve inside waitUntil().
         try {
             await self.registration.showNotification(title, {
                 body: data.body,
                 icon: notifIcon,
-                data: { url: notifUrl },
-                tag: 'dark-alert-' + Date.now()
+                data: { url: notifUrl }
             });
         } catch (fatalErr) {
             console.error('Fatal showNotification error:', fatalErr);
         }
     };
 
-    event.waitUntil(showNotificationWithFallback());
+    event.waitUntil(handlePush());
 });
 
-// Notification Click Event: Focus open window or open new tab to targetUrl
+// Notification Click Event: Focus existing PWA/tab or open new window to targetUrl
 self.addEventListener('notificationclick', function (event) {
     event.notification.close();
 
-    const targetUrl = event.notification.data?.url || (BASE_URL + '/investor/bookings');
+    // Clear app badge on notification open
+    try {
+        if (self.navigator && typeof self.navigator.clearAppBadge === 'function') {
+            self.navigator.clearAppBadge().catch(function () {});
+        }
+    } catch (_) {}
 
-    event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+    const targetUrl = normalizeTargetUrl(event.notification.data && event.notification.data.url);
+
+    event.waitUntil((async function () {
+        try {
+            const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
             for (let i = 0; i < clientList.length; i++) {
                 const client = clientList[i];
                 if (client.url && client.url.startsWith(self.location.origin) && 'focus' in client) {
-                    return client.focus().then(function (focused) {
-                        if (focused && 'navigate' in focused) {
-                            return focused.navigate(targetUrl).catch(function () {});
+                    try {
+                        const focused = await client.focus();
+                        if (focused && typeof focused.navigate === 'function') {
+                            try {
+                                await focused.navigate(targetUrl);
+                                return;
+                            } catch (_) {}
                         }
-                    }).catch(function () {
-                        if (clients.openWindow) return clients.openWindow(targetUrl);
-                    });
+                        try {
+                            (focused || client).postMessage({ type: 'DARK_NAVIGATE', url: targetUrl });
+                            return;
+                        } catch (_) {}
+                    } catch (_) {}
                 }
             }
+
+            if (clients.openWindow) {
+                return await clients.openWindow(targetUrl);
+            }
+        } catch (e) {
             if (clients.openWindow) {
                 return clients.openWindow(targetUrl);
             }
-        })
-    );
+        }
+    })());
 });
 
-// Handle browser push subscription rotation seamlessly in background
+// Handle browser push subscription rotation seamlessly in background (works for both Investor & Client)
 self.addEventListener('pushsubscriptionchange', function (event) {
     event.waitUntil((async function () {
         try {
@@ -118,8 +161,7 @@ self.addEventListener('pushsubscriptionchange', function (event) {
                 : null;
 
             if (!appServerKey) {
-                const keyRes = await fetch(BASE_URL + '/investor/api/vapid-key', {
-                    credentials: 'include',
+                const keyRes = await fetch(BASE_URL + '/client/api/vapid-key', {
                     headers: { 'Accept': 'application/json' }
                 });
                 if (keyRes.ok) {
@@ -136,25 +178,42 @@ self.addEventListener('pushsubscriptionchange', function (event) {
             });
 
             const subJson = newSub.toJSON();
-            await fetch(BASE_URL + '/investor/api/push-subscribe', {
+            const oldEndpoint = event.oldSubscription ? event.oldSubscription.endpoint : null;
+
+            const rotateRes = await fetch(BASE_URL + '/api/push-rotate', {
                 method: 'POST',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify({
+                    old_endpoint: oldEndpoint,
                     endpoint: subJson.endpoint,
                     keys: subJson.keys
                 })
-            }).catch(function () {});
+            });
+
+            if (!rotateRes.ok) {
+                await fetch(BASE_URL + '/investor/api/push-subscribe', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        endpoint: subJson.endpoint,
+                        keys: subJson.keys
+                    })
+                }).catch(function () {});
+            }
         } catch (e) {
             // Re-synced next time page is opened
         }
     })());
 });
 
-// Periodic sync fallback if registered
+// Periodic sync fallback if supported (Android Chrome)
 self.addEventListener('periodicsync', function (event) {
     if (event.tag === 'dark-poll-messages') {
         event.waitUntil(pollForNewAlerts());
@@ -177,7 +236,7 @@ async function pollForNewAlerts() {
                 {
                     body: msg.snippet,
                     icon: BASE_URL + '/images/icon-192.png',
-                    badge: BASE_URL + '/images/icon-192.png',
+                    badge: BASE_URL + '/images/favicon-96.png',
                     data: { url: msg.url },
                     tag: 'sw-poll-msg-' + msg.id,
                     vibrate: [300, 100, 300]
@@ -192,7 +251,7 @@ async function pollForNewAlerts() {
                 {
                     body: `${b.customer_name} | ${b.total_amount} ريال | ${b.status}`,
                     icon: BASE_URL + '/images/icon-192.png',
-                    badge: BASE_URL + '/images/icon-192.png',
+                    badge: BASE_URL + '/images/favicon-96.png',
                     data: { url: b.url },
                     tag: 'sw-poll-book-' + b.id,
                     vibrate: [300, 100, 300, 100, 400]
@@ -200,6 +259,13 @@ async function pollForNewAlerts() {
             );
         }
     } catch (e) {}
+}
+
+function normalizeTargetUrl(rawUrl) {
+    if (!rawUrl) return BASE_URL + '/';
+    if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
+    if (rawUrl.startsWith('/')) return self.location.origin + rawUrl;
+    return BASE_URL + '/' + rawUrl;
 }
 
 function urlBase64ToUint8Array(base64String) {

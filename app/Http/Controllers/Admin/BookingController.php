@@ -139,6 +139,14 @@ class BookingController extends Controller
             $booking->id
         );
 
+        \App\Services\WebPushService::sendToClientByBooking(
+            $booking,
+            "⚠️ يرجى مراجعة إيصال التحويل - حجز #{$booking->reference_number}",
+            $request->rejection_reason . ' — اضغط لإعادة رفع الإيصال',
+            route('client.booking.payment', $booking->reference_number),
+            'client-receipt-rejected-' . $booking->id
+        );
+
         return back()->with('success', 'تم رفض الإيصال وإشعار العميل.');
     }
 
@@ -172,6 +180,14 @@ class BookingController extends Controller
             'customer',
             'booking',
             $booking->id
+        );
+
+        \App\Services\WebPushService::sendToClientByBooking(
+            $booking,
+            "❌ تم إلغاء حجزك رقم #{$booking->reference_number}",
+            "السبب: {$request->cancellation_reason}",
+            route('client.booking.show', $booking->reference_number),
+            'client-booking-cancelled-' . $booking->id
         );
 
         $booking->loadMissing('apartment.investor');

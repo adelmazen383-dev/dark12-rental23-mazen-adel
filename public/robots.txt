@@ -1,10 +1,15 @@
 User-agent: *
 Allow: /app/
+Allow: /app/apartments/
+Allow: /app/about
+Allow: /app/services
+Allow: /app/images/
 Disallow: /app/admin/
 Disallow: /app/investor/
 Disallow: /app/my-chats
 Disallow: /app/chat/
 Disallow: /app/booking/
+Disallow: /app/password/
 Disallow: /app/login
 Disallow: /app/register
 Disallow: /app/investor/register
@@ -13,6 +18,7 @@ Disallow: /investor/
 Disallow: /my-chats
 Disallow: /chat/
 Disallow: /booking/
+Disallow: /password/
 Disallow: /login
 Disallow: /register
 

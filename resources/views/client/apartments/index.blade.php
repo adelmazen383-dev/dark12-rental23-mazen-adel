@@ -1,11 +1,49 @@
 @extends('layouts.client')
 
-@section('title', 'منصة دارك لتنظيم الإيجار | تصفح وحجز الشقق المفروشة في السعودية')
-@section('meta_description', 'تصفح أفضل الشقق المفروشة والأجنحة الفندقية للإيجار في السعودية (الرياض، جدة، الدمام، الخبر، مكة، المدينة). حجز إلكتروني فوري آمن وتواصل مباشر مع المُلّاك عبر منصة دارك.')
-@section('meta_keywords', 'شقق للإيجار السعودية, تصفح شقق الرياض, شقق مفروشة جدة, أجنحة فندقية الدمام, حجز شقق اونلاين السعودية, إيجار شهري شقق, إيجار سنوي السعودية, منصة دارك لتنظيم الإيجار')
-@section('og_title', 'تصفح الشقق المتاحة في السعودية | منصة دارك لتنظيم الإيجار')
-@section('og_description', 'اعثر على شقتك المثالية في الرياض أو جدة أو الدمام أو أي مدينة سعودية واحجزها بأمان عبر منصة دارك لتنظيم الإيجار.')
+@section('title', 'منصة دارك لتأجير الشقق وتنظيم الإيجار | حجز شقق مفروشة في السعودية')
+@section('meta_description', 'منصة دارك لتأجير الشقق وتنظيم الإيجار في السعودية - تصفح أفضل الشقق المفروشة والأجنحة السكنية في الرياض وجدة والدمام والخبر ومكة والمدينة مع حجز فوري وتواصل مباشر مع المُلّاك.')
+@section('meta_keywords', 'منصة دارك, دارك, دارك لتأجير الشقق, منصة دارك لتنظيم الإيجار, شقق للإيجار السعودية, حجز شقق الرياض, شقق مفروشة جدة, أجنحة فندقية الدمام, إيجار شقق يومي وشهري')
+@section('og_title', 'منصة دارك لتأجير الشقق وتنظيم الإيجار في السعودية')
+@section('og_description', 'احجز شقتك المثالية عبر منصة دارك في الرياض أو جدة أو الدمام أو أي مدينة سعودية بأمان وسهولة مع إشعارات فورية.')
 @section('canonical', url('/'))
+
+@section('structured_data')
+@php
+    $faqSchema = [
+        '@context' => 'https://schema.org',
+        '@type' => 'FAQPage',
+        'mainEntity' => [
+            [
+                '@type' => 'Question',
+                'name' => 'ما هي منصة دارك لتنظيم الإيجار وتأجير الشقق؟',
+                'acceptedAnswer' => [
+                    '@type' => 'Answer',
+                    'text' => 'منصة دارك هي منصة رقمية سعودية متخصصة في تأجير وتنظيم حجز الشقق المفروشة والوحدات السكنية يومياً وشهرياً وسنوياً، مع تواصل مباشر مع المُلّاك وإصدار كود استقبال مشفر لاستلام المفتاح بأمان.',
+                ],
+            ],
+            [
+                '@type' => 'Question',
+                'name' => 'كيف أحجز شقة عبر منصة دارك؟',
+                'acceptedAnswer' => [
+                    '@type' => 'Answer',
+                    'text' => 'تصفح الشقق المتاحة في الصفحة الرئيسية لمنصة دارك، واختر الشقة المناسبة ثم حدد تواريخ الدخول والخروج وأتمم التحويل البنكي ورفع الإيصال ليصلك كود استلام المفتاح وإشعار التأكيد فوراً.',
+                ],
+            ],
+            [
+                '@type' => 'Question',
+                'name' => 'هل توفر منصة دارك إشعارات فورية للمستثمر والعميل؟',
+                'acceptedAnswer' => [
+                    '@type' => 'Answer',
+                    'text' => 'نعم، تدعم منصة دارك الإشعارات الفورية في الخلفية عبر الهواتف (بما فيها الآيفون والأندرويد) لإبلاغ المستثمر والعميل لحظياً عند كل رسالة جديدة أو حجز أو تأكيد.',
+                ],
+            ],
+        ],
+    ];
+@endphp
+<script type="application/ld+json">
+{!! json_encode($faqSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+</script>
+@endsection
 
 @section('content')
 <div class="space-y-6">
@@ -39,10 +77,20 @@
             50% { transform: scale(1.6); opacity: 0; }
             100% { transform: scale(0.9); opacity: 0; }
         }
+        @keyframes orbDrift {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(18px, -16px) scale(1.08); }
+        }
+        @keyframes floatParticle {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+            50% { transform: translateY(-22px) translateX(10px); opacity: 0.85; }
+        }
 
         .anim-crown { animation: crownTilt 3s ease-in-out infinite; }
         .anim-play { animation: playPulse 1.8s ease-in-out infinite; }
         .anim-hero-glow { animation: pulseGlowGold 4s infinite; }
+        .anim-orb { animation: orbDrift 9s ease-in-out infinite; }
+        .anim-float-logo { animation: floatHeroCard 4.5s ease-in-out infinite; }
 
         /* Apartment Card 3D Tilt & Lift */
         .apartment-card {
@@ -131,38 +179,41 @@
     </style>
 
     <!-- =========================================================================
-         SECTION 1: HERO HEADER (Welcome & Quick Stats - Clean without clutter)
+         SECTION 1: HERO HEADER (Welcome & Quick Stats - Rich Motion & Brand SEO)
          ========================================================================= -->
-    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 text-white p-6 sm:p-8 shadow-xl border border-amber-500/30 anim-hero-glow">
-        <div class="absolute -left-12 -bottom-12 w-64 h-64 rounded-full bg-amber-500/15 blur-3xl pointer-events-none"></div>
-        <div class="absolute -right-12 -top-12 w-64 h-64 rounded-full bg-indigo-500/15 blur-3xl pointer-events-none"></div>
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 text-white p-6 sm:p-8 shadow-xl border border-amber-500/30 anim-hero-glow animate-fade-in">
+        <div class="absolute -left-12 -bottom-12 w-64 h-64 rounded-full bg-amber-500/15 blur-3xl pointer-events-none anim-orb"></div>
+        <div class="absolute -right-12 -top-12 w-64 h-64 rounded-full bg-indigo-500/15 blur-3xl pointer-events-none anim-orb" style="animation-delay:-4s;"></div>
+        <div class="absolute top-6 left-1/3 w-2 h-2 rounded-full bg-amber-400/60 pointer-events-none" style="animation: floatParticle 5s ease-in-out infinite;"></div>
+        <div class="absolute bottom-8 right-1/4 w-1.5 h-1.5 rounded-full bg-emerald-400/60 pointer-events-none" style="animation: floatParticle 6.5s ease-in-out infinite 1.2s;"></div>
 
         <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
             <!-- Brand & Info -->
             <div class="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-right gap-4 flex-1">
-                <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-white p-1 shadow-xl border-2 border-amber-400 flex-shrink-0 group hover:scale-105 transition duration-300">
-                    <img src="{{ asset('images/dark-logo.jpg') }}" alt="شعار منصة دارك" class="w-full h-full object-cover rounded-xl">
+                <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-white p-1 shadow-xl border-2 border-amber-400 flex-shrink-0 group hover:scale-105 transition duration-300 anim-float-logo">
+                    <img src="{{ asset('images/icon-192.png') }}" alt="شعار منصة دارك لتأجير الشقق" class="w-full h-full object-cover rounded-xl">
                 </div>
 
                 <div class="space-y-2">
                     <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                         <i class="fa-solid fa-shield-halved text-amber-400"></i>
-                        <span>البوابة الرسمية لتنظيم وتوثيق وحجز الشقق السكنية</span>
+                        <span>البوابة الرسمية المعتمدة — منصة دارك</span>
                     </div>
 
                     <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                        منصة دَارِك لتنظيم الإيجار
+                        منصة دارك لتنظيم الإيجار وتأجير الشقق
                     </h1>
+                    <span class="sr-only">منصة دَارِك</span>
 
                     <p class="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xl font-medium">
-                        تصفح الوحدات المتاحة واحجز إقامتك بكل سهولة وأمان، مع استلام فوري للمفاتيح عبر كود الاستقبال المعتمد.
+                        منصة دارك (Darak) لتأجير الشقق المفروشة والأجنحة السكنية في السعودية — احجز إقامتك بأمان وسهولة، مع استلام فوري للمفاتيح عبر كود الاستقبال المعتمد وإشعارات لحظية.
                     </p>
                 </div>
             </div>
 
             <!-- Live Status & Platform Protection -->
             <div class="flex-shrink-0 w-full md:w-auto">
-                <div class="bg-slate-900/90 backdrop-blur-md border border-white/10 p-4 rounded-2xl shadow-lg space-y-3 text-center sm:text-right">
+                <div class="bg-slate-900/90 backdrop-blur-md border border-white/10 p-4 rounded-2xl shadow-lg space-y-3 text-center sm:text-right hover:border-amber-400/40 transition duration-300">
                     <div class="flex items-center justify-between gap-3 text-xs">
                         <span class="flex items-center gap-2 font-bold text-emerald-400">
                             <span class="relative flex h-2.5 w-2.5">
@@ -178,7 +229,7 @@
 
                     <div class="p-2 rounded-xl bg-white/5 border border-white/5 text-[11px] text-slate-300">
                         <i class="fa-solid fa-shield-check text-emerald-400 ml-1"></i>
-                        <span>حجز وتوثيق ومحادثات آمنة 100% داخل الموقع</span>
+                        <span>حجز وتوثيق ومحادثات آمنة 100% داخل منصة دارك</span>
                     </div>
                 </div>
             </div>
@@ -188,7 +239,7 @@
     <!-- =========================================================================
          SECTION 2: INSTRUCTIONS & SAFETY ADVISORY (تعليمات وتوجيهات الحجز الهامة)
          ========================================================================= -->
-    <div class="bg-gradient-to-r from-amber-50 via-amber-50/70 to-white rounded-2xl border-2 border-amber-300/80 p-5 sm:p-6 shadow-sm">
+    <div class="reveal-item bg-gradient-to-r from-amber-50 via-amber-50/70 to-white rounded-2xl border-2 border-amber-300/80 p-5 sm:p-6 shadow-sm hover:shadow-md transition-shadow duration-300">
         <div class="flex items-start gap-4">
             <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center text-xl flex-shrink-0 shadow-md">
                 <i class="fa-solid fa-triangle-exclamation"></i>
@@ -257,7 +308,7 @@
                     $featuresArr = $apt->features ? array_slice(array_map('trim', explode(',', $apt->features)), 0, 3) : [];
                 @endphp
                 
-                <div class="apartment-card flex flex-col justify-between group">
+                <div class="apartment-card reveal-item flex flex-col justify-between group" style="transition-delay: {{ ($loop->index % 6) * 70 }}ms;">
                     <div>
                         <!-- Image Container with Overlays & Light Sweep -->
                         <div class="image-container h-52 sm:h-56 bg-slate-900">
@@ -366,14 +417,14 @@
                         <div class="grid grid-cols-2 gap-2 pt-3 border-t border-slate-100">
                             <!-- Details & Book Button -->
                             <a href="{{ route('client.apartments.show', $apt->id) }}" 
-                               class="py-3 bg-slate-950 hover:bg-slate-800 text-white font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
+                               class="py-3 bg-slate-950 hover:bg-slate-800 text-white font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-sm btn-press btn-shimmer">
                                 <i class="fa-solid fa-eye text-amber-400"></i>
                                 <span>تفاصيل وحجز</span>
                             </a>
 
                             <!-- Direct Platform Chat with Landlord (Instant Alert) -->
                             <a href="{{ route('client.apartments.show', $apt->id) }}#card-chat" 
-                               class="py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
+                               class="py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-sm btn-press btn-shimmer">
                                 <i class="fa-solid fa-comments text-sm text-slate-950"></i>
                                 <span>محادثة المالك</span>
                             </a>
@@ -388,5 +439,66 @@
             {{ $apartments->links() }}
         </div>
     @endif
+
+    <!-- =========================================================================
+         SECTION 4: ANIMATED TRUST PILLARS & FAQ FOR DARAK SEO BRANDING
+         ========================================================================= -->
+    <section class="reveal-item bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6 mt-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-amber-50 text-amber-800 border border-amber-200 mb-2">
+                    <i class="fa-solid fa-award text-amber-500"></i>
+                    <span>لماذا يختار النزلاء والمُلّاك منصة دارك؟</span>
+                </span>
+                <h2 class="text-lg sm:text-xl font-black text-slate-900">منصة دارك — بوابتك المعتمدة لتأجير وتنظيم الشقق</h2>
+            </div>
+            <a href="{{ route('client.services') }}" class="text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1.5 self-start sm:self-center">
+                <span>استكشف خدمات دارك</span>
+                <i class="fa-solid fa-arrow-left text-[11px]"></i>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover-lift space-y-2">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <h3 class="font-black text-sm text-slate-900">حجز مباشر وكود استقبال ذكي</h3>
+                <p class="text-slate-600 leading-relaxed">احجز وحدتك عبر منصة دارك واحصل على كود استلام المفتاح الموثق من الاستقبال دون وسطاء مجهولين.</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover-lift space-y-2">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+                <h3 class="font-black text-sm text-slate-900">إشعارات فورية على الجوال والآيفون</h3>
+                <p class="text-slate-600 leading-relaxed">تصل إشعارات الردود والحجوزات لحظياً للمستثمر والعميل حتى عند إغلاق الموقع لضمان سرعة الاستجابة.</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover-lift space-y-2">
+                <div class="w-10 h-10 rounded-xl bg-indigo-500/15 text-indigo-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-file-shield"></i>
+                </div>
+                <h3 class="font-black text-sm text-slate-900">توثيق رقمي وحماية مالية</h3>
+                <p class="text-slate-600 leading-relaxed">عقود إيجار وفواتير إلكترونية معتمدة ومحادثات محمية داخل منصة دارك لتنظيم الإيجار في السعودية.</p>
+            </div>
+        </div>
+
+        <div class="space-y-2.5 pt-2">
+            <h3 class="font-black text-sm text-slate-900">الأسئلة الشائعة حول منصة دارك لتأجير الشقق</h3>
+            <details class="group rounded-2xl border border-slate-200 bg-slate-50/60 p-3.5 text-xs transition">
+                <summary class="font-bold text-slate-800 cursor-pointer flex items-center justify-between list-none">
+                    <span>كيف أبدأ الحجز أو أتواصل مع مالك الشقة في منصة دارك؟</span>
+                    <i class="fa-solid fa-chevron-down text-amber-500 transition-transform duration-300 group-open:rotate-180"></i>
+                </summary>
+                <p class="text-slate-600 mt-2 leading-relaxed">اختر الشقة المناسبة من القائمة أعلاه ثم اضغط «تفاصيل وحجز» أو «محادثة المالك» للتفاوض المباشر أو إتمام الحجز وتوليد كود الدخول فوراً.</p>
+            </details>
+            <details class="group rounded-2xl border border-slate-200 bg-slate-50/60 p-3.5 text-xs transition">
+                <summary class="font-bold text-slate-800 cursor-pointer flex items-center justify-between list-none">
+                    <span>هل تعمل إشعارات منصة دارك عند إغلاق المتصفح وعلى الآيفون؟</span>
+                    <i class="fa-solid fa-chevron-down text-amber-500 transition-transform duration-300 group-open:rotate-180"></i>
+                </summary>
+                <p class="text-slate-600 mt-2 leading-relaxed">نعم، اضغط على أيقونة الجرس بالأعلى لتفعيل الإشعارات الفورية على الأندرويد والكمبيوتر، أو أضف الموقع إلى الشاشة الرئيسية في الآيفون لتصلك جميع الإشعارات فوراً.</p>
+            </details>
+        </div>
+    </section>
 </div>
 @endsection

@@ -66,12 +66,31 @@ class DashboardController extends Controller
             'notes' => $request->notes,
         ]);
 
+        $inspection->loadMissing('apartment');
+        \App\Services\WebPushService::sendToClientByPhone(
+            $inspection->customer_phone,
+            "📅 تم تحديد موعد معاينة شقة {$inspection->apartment?->apartment_number}",
+            "الموعد: " . \Carbon\Carbon::parse($request->scheduled_at)->format('Y-m-d H:i') . ($request->notes ? " | {$request->notes}" : ''),
+            route('client.apartments.show', $inspection->apartment_id),
+            'client-inspection-' . $inspection->id
+        );
+
         return back()->with('success', 'تم تحديد موعد المعاينة بنجاح.');
     }
 
     public function completeInspection(InspectionRequest $inspection)
     {
         $inspection->update(['status' => 'completed']);
+
+        $inspection->loadMissing('apartment');
+        \App\Services\WebPushService::sendToClientByPhone(
+            $inspection->customer_phone,
+            "✅ اكتملت معاينة شقة {$inspection->apartment?->apartment_number}",
+            "يمكنك الآن إتمام حجز الشقة إلكترونياً عبر منصة دارك.",
+            route('client.apartments.show', $inspection->apartment_id),
+            'client-inspection-done-' . $inspection->id
+        );
+
         return back()->with('success', 'تم تحديث حالة المعاينة إلى مكتملة.');
     }
 
