@@ -1,18 +1,9 @@
 User-agent: *
-Allow: /app/
-Allow: /app/apartments/
-Allow: /app/about
-Allow: /app/services
-Allow: /app/images/
-Disallow: /app/admin/
-Disallow: /app/investor/
-Disallow: /app/my-chats
-Disallow: /app/chat/
-Disallow: /app/booking/
-Disallow: /app/password/
-Disallow: /app/login
-Disallow: /app/register
-Disallow: /app/investor/register
+Allow: /
+Allow: /apartments/
+Allow: /about
+Allow: /services
+Allow: /images/
 Disallow: /admin/
 Disallow: /investor/
 Disallow: /my-chats
@@ -21,5 +12,6 @@ Disallow: /booking/
 Disallow: /password/
 Disallow: /login
 Disallow: /register
+Disallow: /investor/register
 
-Sitemap: https://thiqa.me/app/sitemap.xml
+Sitemap: https://darak.thiqa.me/sitemap.xml

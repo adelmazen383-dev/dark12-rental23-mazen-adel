@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="google-site-verification" content="sboSkl7bJ_OFgDJocQCr2IWCxhAEfVkPDm8O8gbFE7Q" />
 
     {{-- ===================== SEO Core ===================== --}}
     <title>@yield('title', 'منصة دارك لتنظيم الإيجار | حجز شقق مفروشة ووحدات سكنية في السعودية')</title>
