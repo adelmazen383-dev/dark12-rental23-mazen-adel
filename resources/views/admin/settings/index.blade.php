@@ -195,15 +195,17 @@
         </form>
 
         <!-- Live Test Email Form -->
-        <form action="{{ route('admin.settings.test-mail') }}" method="POST" class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div id="testMailAlert" class="hidden p-3.5 rounded-xl text-xs font-semibold"></div>
+
+        <form id="testMailForm" action="{{ route('admin.settings.test-mail') }}" method="POST" class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             @csrf
             <div class="flex-1">
-                <input type="email" name="test_email" required dir="ltr" value="{{ auth()->user()->email }}" placeholder="أدخل إيميلاً لإرسال رسالة OTP تجريبية..."
+                <input type="email" id="testEmailInput" name="test_email" required dir="ltr" value="{{ auth()->user()->email }}" placeholder="أدخل إيميلاً لإرسال رسالة OTP تجريبية..."
                     class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 text-left">
             </div>
-            <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-sm whitespace-nowrap">
-                <i class="fa-solid fa-paper-plane"></i>
-                <span>إرسال بريد اختبار الآن</span>
+            <button type="submit" id="testMailBtn" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-sm whitespace-nowrap">
+                <i class="fa-solid fa-paper-plane" id="testMailIcon"></i>
+                <span id="testMailText">إرسال بريد اختبار الآن</span>
             </button>
         </form>
     </div>
@@ -215,6 +217,92 @@
             document.getElementById('mail_port').value = port;
             document.getElementById('mail_encryption').value = enc;
         }
+
+        async function fetchFreshCsrf() {
+            try {
+                const res = await fetch("{{ route('csrf.token') }}", {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.csrf_token) {
+                        const meta = document.querySelector('meta[name="csrf-token"]');
+                        if (meta) meta.content = data.csrf_token;
+                        document.querySelectorAll('input[name="_token"]').forEach(i => i.value = data.csrf_token);
+                        return data.csrf_token;
+                    }
+                }
+            } catch(e) {}
+            return document.querySelector('meta[name="csrf-token"]')?.content || '';
+        }
+
+        document.getElementById('testMailForm')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('testMailBtn');
+            const icon = document.getElementById('testMailIcon');
+            const text = document.getElementById('testMailText');
+            const alertBox = document.getElementById('testMailAlert');
+            const emailInput = document.getElementById('testEmailInput');
+
+            if (!emailInput.value) return;
+
+            btn.disabled = true;
+            icon.className = 'fa-solid fa-spinner fa-spin';
+            text.textContent = 'جارٍ التحقق والإرسال...';
+            alertBox.className = 'hidden';
+
+            let token = await fetchFreshCsrf();
+
+            try {
+                let res = await fetch(this.action, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': token
+                    },
+                    body: JSON.stringify({
+                        test_email: emailInput.value,
+                        _token: token
+                    })
+                });
+
+                if (res.status === 419) {
+                    token = await fetchFreshCsrf();
+                    res = await fetch(this.action, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': token
+                        },
+                        body: JSON.stringify({
+                            test_email: emailInput.value,
+                            _token: token
+                        })
+                    });
+                }
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    alertBox.className = 'p-3.5 rounded-xl text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center gap-2';
+                    alertBox.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-600 text-base"></i><span>' + data.message + '</span>';
+                } else {
+                    alertBox.className = 'p-3.5 rounded-xl text-xs font-semibold bg-rose-50 border border-rose-200 text-rose-800 flex items-center gap-2';
+                    alertBox.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-rose-600 text-base"></i><span>' + (data.message || 'حدث خطأ أثناء الإرسال.') + '</span>';
+                }
+            } catch(err) {
+                this.submit();
+                return;
+            } finally {
+                btn.disabled = false;
+                icon.className = 'fa-solid fa-paper-plane';
+                text.textContent = 'إرسال بريد اختبار الآن';
+            }
+        });
     </script>
 
     <!-- Platform Bank Accounts Management -->

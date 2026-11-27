@@ -76,6 +76,14 @@ class SettingsController extends Controller
 
         AuditService::log('settings_updated', null, null, $request->only($keys));
 
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'تم حفظ الإعدادات بنجاح.',
+                'csrf_token' => csrf_token(),
+            ]);
+        }
+
         return back()->with('success', 'تم حفظ الإعدادات بنجاح.');
     }
 
@@ -94,16 +102,28 @@ class SettingsController extends Controller
         MailConfigService::apply();
 
         if (!MailConfigService::isRealDeliveryConfigured()) {
-            return back()->with('error', 'خدمة البريد (SMTP) غير مفعلة بعد! يرجى إدخال بيانات خادم SMTP وحفظ التعديلات أولاً ثم الضغط على اختبار الإرسال.');
+            $msg = 'خدمة البريد (SMTP) غير مفعلة بعد! يرجى إدخال بيانات خادم SMTP وحفظ التعديلات أولاً ثم الضغط على اختبار الإرسال.';
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => $msg], 422);
+            }
+            return back()->with('error', $msg);
         }
 
         try {
             $sampleOtp = (string) random_int(100000, 999999);
             Mail::to($request->input('test_email'))->send(new PasswordResetOtpMail($sampleOtp, auth()->user()->name ?? 'المدير'));
 
-            return back()->with('success', "تم إرسال رسالة اختبار بنجاح إلى ({$request->input('test_email')})! تحقق من صندوق الوارد أو مجلد Spam.");
+            $msg = "تم إرسال رسالة اختبار بنجاح إلى ({$request->input('test_email')})! تحقق من صندوق الوارد أو مجلد Spam.";
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => true, 'message' => $msg, 'csrf_token' => csrf_token()]);
+            }
+            return back()->with('success', $msg);
         } catch (\Throwable $e) {
-            return back()->with('error', 'فشل الاتصال بخادم البريد (SMTP): ' . $e->getMessage());
+            $msg = 'فشل الاتصال بخادم البريد (SMTP): ' . $e->getMessage();
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => $msg], 500);
+            }
+            return back()->with('error', $msg);
         }
     }
 

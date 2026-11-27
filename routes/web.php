@@ -37,6 +37,11 @@ use App\Http\Controllers\Investor\ProfileController;
 | Client Routes (Public - QR Code Entry)
 |--------------------------------------------------------------------------
 */
+// CSRF Token refresh endpoint
+Route::get('/csrf-token', function () {
+    return response()->json(['csrf_token' => csrf_token()]);
+})->name('csrf.token');
+
 Route::get('/', [ClientApartmentController::class, 'index'])->name('client.apartments.index');
 Route::get('/about', function () { return view('client.about'); })->name('client.about');
 Route::get('/services', function () { return view('client.services'); })->name('client.services');

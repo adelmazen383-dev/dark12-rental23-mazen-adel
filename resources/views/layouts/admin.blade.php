@@ -247,6 +247,13 @@
                 </div>
             @endif
 
+            @if(session('warning'))
+                <div class="p-4 mb-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center gap-3 shadow-sm">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 text-lg flex-shrink-0"></i>
+                    <div>{{ session('warning') }}</div>
+                </div>
+            @endif
+
             @if($errors->any())
                 <div class="p-4 mb-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm shadow-sm">
                     <ul class="list-disc list-inside space-y-1">
@@ -265,5 +272,39 @@
     </div>
 
     @yield('scripts')
+
+    <script>
+        // Automatic CSRF Sync & Keep-alive for Admin Panel
+        (function() {
+            const CSRF_URL = @json(route('csrf.token'));
+
+            // Sync all forms before submission with latest meta token
+            document.addEventListener('submit', function(e) {
+                const meta = document.querySelector('meta[name="csrf-token"]');
+                if (!meta || !meta.content) return;
+                const tokenInputs = e.target.querySelectorAll('input[name="_token"]');
+                tokenInputs.forEach(input => {
+                    input.value = meta.content;
+                });
+            }, true);
+
+            // Periodic session keep-alive every 5 minutes to prevent session expiration while editing
+            setInterval(async () => {
+                try {
+                    const res = await fetch(CSRF_URL, {
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.csrf_token) {
+                            const meta = document.querySelector('meta[name="csrf-token"]');
+                            if (meta) meta.content = data.csrf_token;
+                            document.querySelectorAll('input[name="_token"]').forEach(inp => inp.value = data.csrf_token);
+                        }
+                    }
+                } catch(err) {}
+            }, 5 * 60 * 1000);
+        })();
+    </script>
 </body>
 </html>
