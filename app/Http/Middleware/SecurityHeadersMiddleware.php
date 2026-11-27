@@ -37,6 +37,18 @@ class SecurityHeadersMiddleware
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
         }
 
+        // Clean up any legacy 'dark_rental_session' cookies on older paths (/app, /app/, /)
+        // when the application has rotated to a clean session cookie name.
+        $activeCookie = (string) config('session.cookie', 'dark_rental_session');
+        if ($activeCookie !== 'dark_rental_session' && $request->cookies->has('dark_rental_session')) {
+            $isHttps = $request->secure() || $request->header('X-Forwarded-Proto') === 'https' || config('app.env') === 'production';
+            foreach (['/app', '/app/', '/'] as $legacyPath) {
+                $response->headers->setCookie(
+                    cookie('dark_rental_session', '', -2628000, $legacyPath, null, $isHttps, true, false, 'lax')
+                );
+            }
+        }
+
         return $response;
     }
 }

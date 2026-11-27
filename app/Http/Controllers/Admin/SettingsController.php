@@ -65,21 +65,42 @@ class SettingsController extends Controller
 
         foreach ($keys as $key) {
             if ($request->has($key)) {
-                Setting::setValue($key, $request->input($key));
+                $val = $request->input($key);
+                if (is_string($val)) {
+                    $val = trim($val);
+                }
+                Setting::setValue($key, $val);
+            }
+        }
+
+        // Keep port & encryption aligned for Gmail/standard SMTP ports (587=tls, 465=ssl)
+        if ($request->filled('mail_port')) {
+            $portInt = (int) $request->input('mail_port');
+            if ($portInt === 587 && $request->input('mail_encryption') === 'ssl') {
+                Setting::setValue('mail_encryption', 'tls');
+            } elseif ($portInt === 465 && $request->input('mail_encryption') === 'tls') {
+                Setting::setValue('mail_encryption', 'ssl');
             }
         }
 
         // Encrypt SMTP password only if explicitly provided (keep existing if blank)
         if ($request->filled('mail_password')) {
-            Setting::setValue('mail_password', Crypt::encryptString($request->input('mail_password')), 'كلمة مرور خادم البريد SMTP');
+            $rawPass = (string) $request->input('mail_password');
+            $effectiveHost = strtolower(trim((string) ($request->input('mail_host') ?: Setting::getValue('mail_host', ''))));
+            if (str_contains($effectiveHost, 'gmail')) {
+                $rawPass = preg_replace('/\s+/', '', $rawPass);
+            }
+            Setting::setValue('mail_password', Crypt::encryptString($rawPass), 'كلمة مرور خادم البريد SMTP');
         }
 
         AuditService::log('settings_updated', null, null, $request->only($keys));
 
         if ($request->expectsJson() || $request->ajax()) {
+            MailConfigService::apply();
             return response()->json([
                 'success' => true,
                 'message' => 'تم حفظ الإعدادات بنجاح.',
+                'mail_configured' => MailConfigService::isRealDeliveryConfigured(),
                 'csrf_token' => csrf_token(),
             ]);
         }

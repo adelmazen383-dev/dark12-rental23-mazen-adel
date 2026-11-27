@@ -266,4 +266,29 @@ class WebPushNotificationTest extends TestCase
             'email' => 'investor@tower.com',
         ]);
     }
+
+    public function test_admin_smtp_ajax_save_normalizes_port_587_and_strips_gmail_password_spaces(): void
+    {
+        $admin = User::where('role', 'admin')->firstOrFail();
+
+        $res = $this->actingAs($admin)->postJson('/admin/settings', [
+            'mail_mailer' => 'smtp',
+            'mail_host' => 'smtp.gmail.com',
+            'mail_port' => 587,
+            'mail_encryption' => 'ssl',
+            'mail_username' => 'test@gmail.com',
+            'mail_password' => 'abcd efgh ijkl mnop',
+            'mail_from_address' => 'test@gmail.com',
+        ]);
+
+        $res->assertOk()
+            ->assertJson([
+                'success' => true,
+            ])
+            ->assertJsonStructure(['success', 'message', 'csrf_token', 'mail_configured']);
+
+        $this->assertEquals('tls', \App\Models\Setting::getValue('mail_encryption'));
+        $storedPass = \App\Models\Setting::getValue('mail_password');
+        $this->assertEquals('abcdefghijklmnop', \Illuminate\Support\Facades\Crypt::decryptString($storedPass));
+    }
 }

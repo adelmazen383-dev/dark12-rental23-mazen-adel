@@ -45,14 +45,28 @@ class MailConfigService
 
             // Only override .env config if Admin actually configured SMTP in database settings
             if ($mailer === 'smtp' && $host !== '') {
-                $scheme = ($encryption === 'ssl' || $port === 465) ? 'smtps' : 'smtp';
+                $effectivePort = $port ?: 587;
+                // Port 587 uses STARTTLS ('smtp'); Port 465 uses implicit TLS ('smtps').
+                // Never force 'smtps' on port 587 even if user left encryption dropdown on 'ssl'.
+                if ($effectivePort === 465) {
+                    $scheme = 'smtps';
+                } elseif ($effectivePort === 587) {
+                    $scheme = 'smtp';
+                } else {
+                    $scheme = ($encryption === 'ssl') ? 'smtps' : 'smtp';
+                }
+
+                // Gmail App Passwords are often copy-pasted with spaces (e.g. "abcd efgh ijkl mnop")
+                if (str_contains(strtolower($host), 'gmail') && $password !== '') {
+                    $password = preg_replace('/\s+/', '', $password);
+                }
 
                 config([
                     'mail.default' => 'smtp',
                     'mail.mailers.smtp.transport' => 'smtp',
                     'mail.mailers.smtp.scheme' => $scheme,
                     'mail.mailers.smtp.host' => $host,
-                    'mail.mailers.smtp.port' => $port ?: 587,
+                    'mail.mailers.smtp.port' => $effectivePort,
                     'mail.mailers.smtp.username' => $username ?: config('mail.mailers.smtp.username'),
                     'mail.mailers.smtp.password' => $password ?: config('mail.mailers.smtp.password'),
                     'mail.mailers.smtp.timeout' => 12,

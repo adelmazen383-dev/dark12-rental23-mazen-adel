@@ -17,7 +17,9 @@
             <span>الرسوم المالية والاشتراكات (قابلة للتعديل مباشرة)</span>
         </h3>
 
-        <form action="{{ route('admin.settings.update') }}" method="POST" class="space-y-4">
+        <div id="financialAlert" class="hidden mb-4 p-3.5 rounded-xl text-xs font-semibold"></div>
+
+        <form id="financialSettingsForm" action="{{ route('admin.settings.update') }}" method="POST" class="space-y-4">
             @csrf
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -94,8 +96,9 @@
             </div>
 
             <div class="pt-4 border-t border-slate-100 flex justify-end">
-                <button type="submit" class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition">
-                    حفظ التعديلات
+                <button type="submit" id="financialSaveBtn" class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 font-bold rounded-xl text-xs transition flex items-center gap-2">
+                    <i class="fa-solid fa-floppy-disk" id="financialSaveIcon"></i>
+                    <span id="financialSaveText">حفظ التعديلات</span>
                 </button>
             </div>
         </form>
@@ -112,11 +115,11 @@
                 <p class="text-[11px] text-slate-500 mt-0.5">مطلوب لإرسال رمز استعادة كلمة المرور (OTP) إلى بريد المستثمرين والمشرفين</p>
             </div>
             @if(!empty($mailConfigured))
-                <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 w-fit">
+                <span id="smtpStatusBadge" data-configured="1" class="px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 w-fit">
                     <i class="fa-solid fa-circle-check ml-1"></i> SMTP مفعّل
                 </span>
             @else
-                <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200 w-fit">
+                <span id="smtpStatusBadge" data-configured="0" class="px-3 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200 w-fit">
                     <i class="fa-solid fa-triangle-exclamation ml-1"></i> غير مفعّل (وضع السجل المحلي)
                 </span>
             @endif
@@ -131,7 +134,9 @@
             <button type="button" onclick="applyMailPreset('smtp-relay.brevo.com', 587, 'tls')" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 font-bold transition">Brevo (مجاني 300/يوم)</button>
         </div>
 
-        <form action="{{ route('admin.settings.update') }}" method="POST" class="space-y-4">
+        <div id="smtpAlert" class="hidden p-3.5 rounded-xl text-xs font-semibold"></div>
+
+        <form id="smtpSettingsForm" action="{{ route('admin.settings.update') }}" method="POST" class="space-y-4">
             @csrf
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
@@ -166,30 +171,31 @@
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">اسم المستخدم / الإيميل (Username)</label>
-                    <input type="text" name="mail_username" value="{{ $settings['mail_username'] ?? '' }}" dir="ltr" placeholder="your-email@gmail.com"
+                    <input type="text" name="mail_username" id="mail_username" value="{{ $settings['mail_username'] ?? '' }}" dir="ltr" placeholder="your-email@gmail.com"
                         class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 text-left">
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">كلمة مرور التطبيق (App Password)</label>
-                    <input type="password" name="mail_password" dir="ltr" placeholder="{{ !empty($settings['mail_password']) ? '•••••••• (محفوظة - اتركها فارغة للإبقاء)' : 'أدخل App Password' }}"
+                    <input type="password" name="mail_password" id="mail_password" dir="ltr" placeholder="{{ !empty($settings['mail_password']) ? '•••••••• (محفوظة - اتركها فارغة للإبقاء)' : 'أدخل App Password' }}"
                         class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 text-left">
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">بريد المرسل (From Email)</label>
-                    <input type="email" name="mail_from_address" value="{{ $settings['mail_from_address'] ?? '' }}" dir="ltr" placeholder="noreply@thiqa.me"
+                    <input type="email" name="mail_from_address" id="mail_from_address" value="{{ $settings['mail_from_address'] ?? '' }}" dir="ltr" placeholder="noreply@thiqa.me"
                         class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 text-left">
                 </div>
             </div>
 
             <div class="p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-[11px] text-indigo-900 leading-relaxed">
-                <strong>ملاحظة لـ Gmail:</strong> فعّل التحقق بخطوتين (2-Step Verification) في حساب Google ثم أنشئ <strong>App Password</strong> من إعدادات الأمان وأدخله في خانة كلمة المرور أعلاه (وليس كلمة مرور حساب Gmail العادية).
+                <strong>ملاحظة لـ Gmail:</strong> فعّل التحقق بخطوتين (2-Step Verification) في حساب Google ثم أنشئ <strong>App Password</strong> من إعدادات الأمان وأدخله في خانة كلمة المرور أعلاه (وليس كلمة مرور حساب Gmail العادية). اختر <strong>TLS (587)</strong> أو <strong>SSL (465)</strong>.
             </div>
 
             <div class="flex justify-end">
-                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition shadow-sm">
-                    حفظ إعدادات البريد (SMTP)
+                <button type="submit" id="smtpSaveBtn" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition shadow-sm flex items-center gap-2">
+                    <i class="fa-solid fa-floppy-disk" id="smtpSaveIcon"></i>
+                    <span id="smtpSaveText">حفظ إعدادات البريد (SMTP)</span>
                 </button>
             </div>
         </form>
@@ -218,9 +224,57 @@
             document.getElementById('mail_encryption').value = enc;
         }
 
+        // Keep Port and Encryption synced so 587+SSL mismatch never occurs
+        document.getElementById('mail_encryption')?.addEventListener('change', function() {
+            const portEl = document.getElementById('mail_port');
+            if (!portEl) return;
+            if (this.value === 'ssl' && (portEl.value === '587' || !portEl.value)) {
+                portEl.value = '465';
+            } else if (this.value === 'tls' && (portEl.value === '465' || !portEl.value)) {
+                portEl.value = '587';
+            }
+        });
+        document.getElementById('mail_port')?.addEventListener('change', function() {
+            const encEl = document.getElementById('mail_encryption');
+            if (!encEl) return;
+            if (this.value === '465') encEl.value = 'ssl';
+            else if (this.value === '587') encEl.value = 'tls';
+        });
+
+        function showInlineAlert(el, ok, message) {
+            if (!el) return;
+            el.className = ok
+                ? 'p-3.5 rounded-xl text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center gap-2'
+                : 'p-3.5 rounded-xl text-xs font-semibold bg-rose-50 border border-rose-200 text-rose-800 flex items-center gap-2';
+            el.innerHTML = '';
+            const ic = document.createElement('i');
+            ic.className = ok
+                ? 'fa-solid fa-circle-check text-emerald-600 text-base flex-shrink-0'
+                : 'fa-solid fa-triangle-exclamation text-rose-600 text-base flex-shrink-0';
+            const sp = document.createElement('span');
+            sp.textContent = message;
+            el.appendChild(ic);
+            el.appendChild(sp);
+        }
+
+        function updateSmtpBadge(configured) {
+            const badge = document.getElementById('smtpStatusBadge');
+            if (!badge) return;
+            badge.dataset.configured = configured ? '1' : '0';
+            if (configured) {
+                badge.className = 'px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 w-fit';
+                badge.innerHTML = '<i class="fa-solid fa-circle-check ml-1"></i> SMTP مفعّل';
+            } else {
+                badge.className = 'px-3 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200 w-fit';
+                badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation ml-1"></i> غير مفعّل (وضع السجل المحلي)';
+            }
+        }
+
         async function fetchFreshCsrf() {
             try {
                 const res = await fetch("{{ route('csrf.token') }}", {
+                    credentials: 'same-origin',
+                    cache: 'no-store',
                     headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 if (res.ok) {
@@ -235,6 +289,127 @@
             } catch(e) {}
             return document.querySelector('meta[name="csrf-token"]')?.content || '';
         }
+
+        async function postJsonWithFreshCsrf(url, payload) {
+            let token = await fetchFreshCsrf();
+            const sendReq = async (tok) => fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': tok
+                },
+                body: JSON.stringify(Object.assign({}, payload, { _token: tok }))
+            });
+
+            let res = await sendReq(token);
+            if (res.status === 419) {
+                token = await fetchFreshCsrf();
+                res = await sendReq(token);
+            }
+            let data = {};
+            try { data = await res.json(); } catch (_) {}
+            if (data && data.csrf_token) {
+                const meta = document.querySelector('meta[name="csrf-token"]');
+                if (meta) meta.content = data.csrf_token;
+                document.querySelectorAll('input[name="_token"]').forEach(i => i.value = data.csrf_token);
+            }
+            return { res, data };
+        }
+
+        function extractErrorMessage(data, fallback) {
+            if (data && data.errors) {
+                const firstKey = Object.keys(data.errors)[0];
+                if (firstKey && Array.isArray(data.errors[firstKey]) && data.errors[firstKey][0]) {
+                    return data.errors[firstKey][0];
+                }
+            }
+            return (data && data.message) ? data.message : fallback;
+        }
+
+        function formToObject(form) {
+            const obj = {};
+            new FormData(form).forEach((v, k) => {
+                if (k !== '_token') obj[k] = v;
+            });
+            return obj;
+        }
+
+        // Financial settings AJAX save (eliminates 419 completely)
+        document.getElementById('financialSettingsForm')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('financialSaveBtn');
+            const icon = document.getElementById('financialSaveIcon');
+            const text = document.getElementById('financialSaveText');
+            const alertBox = document.getElementById('financialAlert');
+
+            btn.disabled = true;
+            icon.className = 'fa-solid fa-spinner fa-spin';
+            text.textContent = 'جارٍ الحفظ...';
+            alertBox.className = 'hidden';
+
+            try {
+                const { res, data } = await postJsonWithFreshCsrf(this.action, formToObject(this));
+                if (res.ok && data.success) {
+                    showInlineAlert(alertBox, true, data.message || 'تم حفظ التعديلات بنجاح.');
+                } else {
+                    showInlineAlert(alertBox, false, extractErrorMessage(data, 'تعذر حفظ التعديلات. يرجى المحاولة مجدداً.'));
+                }
+            } catch (err) {
+                showInlineAlert(alertBox, false, 'حدث خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى.');
+            } finally {
+                btn.disabled = false;
+                icon.className = 'fa-solid fa-floppy-disk';
+                text.textContent = 'حفظ التعديلات';
+            }
+        });
+
+        async function saveSmtpSettings() {
+            const form = document.getElementById('smtpSettingsForm');
+            const btn = document.getElementById('smtpSaveBtn');
+            const icon = document.getElementById('smtpSaveIcon');
+            const text = document.getElementById('smtpSaveText');
+            const alertBox = document.getElementById('smtpAlert');
+
+            btn.disabled = true;
+            icon.className = 'fa-solid fa-spinner fa-spin';
+            text.textContent = 'جارٍ حفظ إعدادات البريد...';
+            alertBox.className = 'hidden';
+
+            try {
+                const payload = formToObject(form);
+                const { res, data } = await postJsonWithFreshCsrf(form.action, payload);
+                if (res.ok && data.success) {
+                    showInlineAlert(alertBox, true, data.message || 'تم حفظ إعدادات البريد (SMTP) بنجاح.');
+                    if (typeof data.mail_configured === 'boolean') {
+                        updateSmtpBadge(data.mail_configured);
+                    }
+                    const pwEl = document.getElementById('mail_password');
+                    if (pwEl && pwEl.value.trim() !== '') {
+                        pwEl.value = '';
+                        pwEl.placeholder = '•••••••• (محفوظة - اتركها فارغة للإبقاء)';
+                    }
+                    return true;
+                } else {
+                    showInlineAlert(alertBox, false, extractErrorMessage(data, 'تعذر حفظ إعدادات البريد. يرجى مراجعة الحقول.'));
+                    return false;
+                }
+            } catch (err) {
+                showInlineAlert(alertBox, false, 'حدث خطأ في الاتصال بالخادم أثناء حفظ الإعدادات.');
+                return false;
+            } finally {
+                btn.disabled = false;
+                icon.className = 'fa-solid fa-floppy-disk';
+                text.textContent = 'حفظ إعدادات البريد (SMTP)';
+            }
+        }
+
+        document.getElementById('smtpSettingsForm')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await saveSmtpSettings();
+        });
 
         document.getElementById('testMailForm')?.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -251,52 +426,28 @@
             text.textContent = 'جارٍ التحقق والإرسال...';
             alertBox.className = 'hidden';
 
-            let token = await fetchFreshCsrf();
-
             try {
-                let res = await fetch(this.action, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': token
-                    },
-                    body: JSON.stringify({
-                        test_email: emailInput.value,
-                        _token: token
-                    })
+                // Auto-save SMTP settings first if user filled host & chose smtp
+                const mailerVal = document.getElementById('mail_mailer')?.value;
+                const hostVal = (document.getElementById('mail_host')?.value || '').trim();
+                const pwVal = (document.getElementById('mail_password')?.value || '').trim();
+                const isConfigured = document.getElementById('smtpStatusBadge')?.dataset.configured === '1';
+                if (mailerVal === 'smtp' && hostVal !== '' && (!isConfigured || pwVal !== '')) {
+                    const saved = await saveSmtpSettings();
+                    if (!saved) return;
+                }
+
+                const { res, data } = await postJsonWithFreshCsrf(this.action, {
+                    test_email: emailInput.value
                 });
 
-                if (res.status === 419) {
-                    token = await fetchFreshCsrf();
-                    res = await fetch(this.action, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-TOKEN': token
-                        },
-                        body: JSON.stringify({
-                            test_email: emailInput.value,
-                            _token: token
-                        })
-                    });
-                }
-
-                const data = await res.json();
-
                 if (res.ok && data.success) {
-                    alertBox.className = 'p-3.5 rounded-xl text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center gap-2';
-                    alertBox.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-600 text-base"></i><span>' + data.message + '</span>';
+                    showInlineAlert(alertBox, true, data.message);
                 } else {
-                    alertBox.className = 'p-3.5 rounded-xl text-xs font-semibold bg-rose-50 border border-rose-200 text-rose-800 flex items-center gap-2';
-                    alertBox.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-rose-600 text-base"></i><span>' + (data.message || 'حدث خطأ أثناء الإرسال.') + '</span>';
+                    showInlineAlert(alertBox, false, extractErrorMessage(data, 'حدث خطأ أثناء الإرسال.'));
                 }
             } catch(err) {
-                this.submit();
-                return;
+                showInlineAlert(alertBox, false, 'حدث خطأ في الاتصال بالخادم أثناء اختبار البريد.');
             } finally {
                 btn.disabled = false;
                 icon.className = 'fa-solid fa-paper-plane';

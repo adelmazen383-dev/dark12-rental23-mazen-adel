@@ -31,17 +31,31 @@ $app = Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, \Illuminate\Http\Request $request) {
-            if ($request->expectsJson() || $request->isXmlHttpRequest() || $request->is('*/api/*') || $request->is('api/*')) {
-                return response()->json([
-                    'message' => 'انتهت صلاحية رمز الأمان (CSRF). تم تجديد الرمز، يرجى إعادة المحاولة.',
-                    'csrf_token' => csrf_token(),
-                ], 419);
+        $exceptions->respond(function (\Symfony\Component\HttpFoundation\Response $response, \Throwable $e, \Illuminate\Http\Request $request) {
+            if ($response->getStatusCode() === 419) {
+                \Illuminate\Support\Facades\Log::warning('CSRF 419 intercepted', [
+                    'method' => $request->method(),
+                    'path' => $request->path(),
+                    'ip' => $request->ip(),
+                    'session_cookie' => config('session.cookie'),
+                    'cookie_names' => array_keys($request->cookies->all()),
+                    'has_token_input' => $request->has('_token'),
+                    'has_token_header' => $request->headers->has('X-CSRF-TOKEN'),
+                ]);
+
+                if ($request->expectsJson() || $request->isXmlHttpRequest() || $request->is('*/api/*') || $request->is('api/*')) {
+                    return response()->json([
+                        'message' => 'انتهت صلاحية رمز الأمان (CSRF). تم تجديد الرمز، يرجى إعادة المحاولة.',
+                        'csrf_token' => csrf_token(),
+                    ], 419);
+                }
+
+                return redirect()->back()
+                    ->withInput($request->except(['_token', 'password', 'password_confirmation', 'mail_password']))
+                    ->with('warning', 'تم تحديث رمز أمان الصفحة تلقائياً للأمان. يرجى إعادة الضغط على الزر لإتمام طلبك بنجاح.');
             }
 
-            return redirect()->back()
-                ->withInput($request->except(['_token', 'password', 'password_confirmation', 'mail_password']))
-                ->with('warning', 'تم تحديث رمز أمان الصفحة تلقائياً للأمان. يرجى إعادة الضغط على الزر لإتمام طلبك بنجاح.');
+            return $response;
         });
     })->create();
 

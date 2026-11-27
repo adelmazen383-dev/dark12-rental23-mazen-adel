@@ -82,10 +82,14 @@ class LoginController extends Controller
             ]);
 
             // If "remember me" ticked, store long-lived cookies (1 year)
+            // Reuse the remember_token already created by Auth::attempt($credentials, true)
+            // so Laravel's native remember_web_* recaller cookie is NOT invalidated!
             if ($remember) {
-                // Generate & store a remember token in DB
-                $token = Str::random(60);
-                $user->forceFill(['remember_token' => $token])->save();
+                $token = $user->getRememberToken();
+                if (empty($token)) {
+                    $token = Str::random(60);
+                    $user->forceFill(['remember_token' => $token])->save();
+                }
 
                 $minutesInYear = 525600;
                 $isSecure = $request->secure() || config('app.env') === 'production';

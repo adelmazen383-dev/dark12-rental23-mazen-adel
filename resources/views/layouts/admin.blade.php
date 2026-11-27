@@ -278,20 +278,11 @@
         (function() {
             const CSRF_URL = @json(route('csrf.token'));
 
-            // Sync all forms before submission with latest meta token
-            document.addEventListener('submit', function(e) {
-                const meta = document.querySelector('meta[name="csrf-token"]');
-                if (!meta || !meta.content) return;
-                const tokenInputs = e.target.querySelectorAll('input[name="_token"]');
-                tokenInputs.forEach(input => {
-                    input.value = meta.content;
-                });
-            }, true);
-
-            // Periodic session keep-alive every 5 minutes to prevent session expiration while editing
-            setInterval(async () => {
+            async function refreshAdminCsrf() {
                 try {
                     const res = await fetch(CSRF_URL, {
+                        credentials: 'same-origin',
+                        cache: 'no-store',
                         headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
                     });
                     if (res.ok) {
@@ -303,7 +294,25 @@
                         }
                     }
                 } catch(err) {}
-            }, 5 * 60 * 1000);
+            }
+
+            // Sync all forms before submission with latest meta token
+            document.addEventListener('submit', function(e) {
+                const meta = document.querySelector('meta[name="csrf-token"]');
+                if (!meta || !meta.content) return;
+                const tokenInputs = e.target.querySelectorAll('input[name="_token"]');
+                tokenInputs.forEach(input => {
+                    input.value = meta.content;
+                });
+            }, true);
+
+            // Refresh token when returning to the admin tab and every 5 minutes
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible') {
+                    refreshAdminCsrf();
+                }
+            });
+            setInterval(refreshAdminCsrf, 5 * 60 * 1000);
         })();
     </script>
 </body>
