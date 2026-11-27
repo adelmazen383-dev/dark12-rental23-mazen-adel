@@ -21,9 +21,51 @@ class SecurityHeadersMiddleware
             if ($forceHttps && !$isSecure) {
                 return redirect()->secure($request->getRequestUri(), 301);
             }
+
+            // 1b. Canonical host 301 redirect (consolidate thiqa.me/app -> https://darak.thiqa.me)
+            // so Google Search indexes ONLY darak.thiqa.me (never thiqa.me/app or Vercel).
+            $canonicalUrl = rtrim((string) config('app.url', ''), '/');
+            $canonicalHost = strtolower((string) parse_url($canonicalUrl, PHP_URL_HOST));
+            $requestHost = strtolower((string) $request->getHost());
+
+            if (
+                $canonicalHost !== ''
+                && str_starts_with($canonicalUrl, 'https://')
+                && !in_array($requestHost, [$canonicalHost, 'localhost', '127.0.0.1'], true)
+            ) {
+                $isNonRedirectPath = $request->is(
+                    'sw.js',
+                    'manifest.json',
+                    'manifest-client.json',
+                    'csrf-token',
+                    'api/*',
+                    'client/api/*',
+                    'investor/api/*',
+                    'storage/*',
+                    'google*.html'
+                );
+
+                if (in_array($request->method(), ['GET', 'HEAD'], true) && !$isNonRedirectPath) {
+                    $pathInfo = $request->getPathInfo();
+                    $target = $canonicalUrl . ($pathInfo === '/' ? '' : $pathInfo);
+                    if ($qs = $request->getQueryString()) {
+                        $target .= '?' . $qs;
+                    }
+                    return redirect()->away($target, 301);
+                }
+            }
         }
 
         $response = $next($request);
+
+        // Prevent search engines from indexing any non-canonical host responses (e.g. thiqa.me/app)
+        if (!app()->environment('testing')) {
+            $canonicalHost = strtolower((string) parse_url((string) config('app.url', ''), PHP_URL_HOST));
+            $requestHost = strtolower((string) $request->getHost());
+            if ($canonicalHost !== '' && !in_array($requestHost, [$canonicalHost, 'localhost', '127.0.0.1'], true)) {
+                $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
+            }
+        }
 
         // 2. Set industry-standard HTTP security headers
         $response->headers->set('X-Content-Type-Options', 'nosniff');
